@@ -34,11 +34,11 @@ body { font-family: var(--font); background: var(--bg); color: var(--txt); displ
   display: flex; align-items: center; gap: 10px;
 }
 .sb-mark {
-  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-  background: linear-gradient(135deg,#6366F1,#8B5CF6);
+  flex-shrink: 0; background: white;
+  border-radius: 8px; padding: 3px 6px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: white;
 }
+.sb-mark img { height: 26px; display: block; }
 .sb-brand { font-size: 13px; font-weight: 700; }
 .sb-sub   { font-size: 10px; color: var(--txt3); margin-top: 1px; }
 
@@ -249,9 +249,11 @@ tbody tr:last-child td { border-bottom: none; }
 <!-- ── Sidebar ── -->
 <div class="sidebar">
   <div class="sb-logo">
-    <div class="sb-mark">FL</div>
+    <div class="sb-mark">
+      <img src="/static/img/fig-logo.png" alt="FIG Living">
+    </div>
     <div>
-      <div class="sb-brand">FIG Living P.A.T</div>
+      <div class="sb-brand">P.A.T</div>
       <div class="sb-sub">Talent Analytics</div>
     </div>
   </div>

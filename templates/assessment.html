@@ -64,11 +64,11 @@ body::before {
   display: flex; align-items: center; gap: 10px;
 }
 .logo-mark {
-  width: 34px; height: 34px; border-radius: 9px;
-  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  background: white; border-radius: 9px;
+  padding: 4px 7px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700; color: white; letter-spacing: -0.5px;
 }
+.logo-mark img { height: 28px; display: block; }
 .logo-text { font-size: 14px; font-weight: 600; color: var(--txt); }
 .logo-sub  { font-size: 11px; color: var(--txt2); margin-top: 1px; }
 
@@ -376,10 +376,11 @@ body::before {
   <!-- Top Bar -->
   <div class="topbar">
     <div class="logo">
-      <div class="logo-mark">FL</div>
+      <div class="logo-mark">
+        <img src="/static/img/fig-logo.png" alt="FIG Living">
+      </div>
       <div>
-        <div class="logo-text">FIG Living</div>
-        <div class="logo-sub">Business Analyst Assessment</div>
+        <div class="logo-sub" style="margin-top:0;">Business Analyst Assessment</div>
       </div>
     </div>
     <div style="font-size:11px;color:var(--txt3)">Bain Methodology</div>
