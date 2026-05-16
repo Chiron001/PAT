@@ -502,6 +502,19 @@ def api_candidate(sid):
     del s["answers_json"], s["red_flags_json"]
     return jsonify(s)
 
+@app.route("/api/admin/candidate/<int:sid>", methods=["DELETE"])
+@admin_required
+def delete_candidate(sid):
+    conn = get_db()
+    row = conn.execute("SELECT id FROM submissions WHERE id=?", (sid,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    conn.execute("DELETE FROM submissions WHERE id=?", (sid,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
 @app.route("/api/admin/cv/<int:sid>")
 @admin_required
 def admin_cv(sid):

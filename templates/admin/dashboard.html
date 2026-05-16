@@ -810,7 +810,10 @@ function filterCandidates() {
       <td><span style="color:${DIM_COLORS['C']}">${c.dim_c}%</span></td>
       <td>${recBadge(c.recommendation)}</td>
       <td>${c.has_cv ? `<a href="/api/admin/cv/${c.id}" target="_blank" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:var(--success);border-color:rgba(16,185,129,0.25);">↓ CV</a>` : `<span style="color:var(--txt3);font-size:12px;">—</span>`}</td>
-      <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="openModal(${c.id})">View →</button></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="openModal(${c.id})">View →</button>
+        <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:var(--danger);border-color:rgba(239,68,68,0.25);" onclick="deleteCandidate(${c.id},'${(c.name||c.email).replace(/'/g,"\\'")}')">✕</button>
+      </td>
     </tr>
   `).join('');
   document.getElementById('candidate-count').textContent = `Showing ${filtered.length} of ${allCandidates.length} candidates`;
@@ -1098,6 +1101,20 @@ async function openModal(id) {
 
 function closeModal(e) { if (e.target.id === 'modal-overlay') closeModalBtn(); }
 function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ── Delete candidate ─────────────────────────────────────────────────────────
+async function deleteCandidate(id, name) {
+  if (!confirm(`Remove "${name}" from the system?\n\nThis will permanently delete their assessment data and CV. This cannot be undone.`)) return;
+  const res = await fetch('/api/admin/candidate/' + id, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    allCandidates = allCandidates.filter(c => c.id !== id);
+    filterCandidates();
+    renderOverview();
+  } else {
+    alert('Failed to delete: ' + (data.error || 'Unknown error'));
+  }
+}
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalBtn(); });
