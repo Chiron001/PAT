@@ -385,7 +385,7 @@ tbody tr:last-child td { border-bottom: none; }
               <tr>
                 <th>Rank</th><th>Name</th><th>Email</th><th>Submitted</th>
                 <th>Time</th><th>Weighted</th><th>Analytical</th><th>Execution</th>
-                <th>Recommendation</th><th>Action</th>
+                <th>Recommendation</th><th>CV</th><th>Action</th>
               </tr>
             </thead>
             <tbody id="candidates-tbody"></tbody>
@@ -809,6 +809,7 @@ function filterCandidates() {
       <td><span style="color:${DIM_COLORS['A']}">${c.dim_a}%</span></td>
       <td><span style="color:${DIM_COLORS['C']}">${c.dim_c}%</span></td>
       <td>${recBadge(c.recommendation)}</td>
+      <td>${c.has_cv ? `<a href="/api/admin/cv/${c.id}" target="_blank" class="btn btn-ghost" style="padding:5px 10px;font-size:11px;color:var(--success);border-color:rgba(16,185,129,0.25);">↓ CV</a>` : `<span style="color:var(--txt3);font-size:12px;">—</span>`}</td>
       <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="openModal(${c.id})">View →</button></td>
     </tr>
   `).join('');
@@ -903,8 +904,9 @@ function renderNarrativeCard(c, type) {
         <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Bain Analysis</div>
         <div class="narrative-box">${c.narrative || 'No narrative generated.'}</div>
       </div>
-      <div style="margin-top:12px;">
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="openModal(${c.id})" style="font-size:12px;">View Full Profile →</button>
+        ${c.has_cv ? `<a href="/api/admin/cv/${c.id}" target="_blank" class="btn btn-success" style="font-size:12px;text-decoration:none;">↓ Download CV</a>` : ''}
       </div>
     </div>`;
 }
@@ -1040,7 +1042,10 @@ async function openModal(id) {
   const overlay = document.getElementById('modal-overlay');
 
   document.getElementById('modal-name').textContent  = c.name || c.email;
-  document.getElementById('modal-email').textContent = c.email + ' · Submitted ' + fmtDate(c.submitted_at) + ' · ' + fmtTime(c.time_taken_sec);
+  const cvLink = c.has_cv
+    ? ` · <a href="/api/admin/cv/${c.id}" target="_blank" style="color:var(--success);text-decoration:none;font-size:11px;">↓ Download CV (${c.cv_filename})</a>`
+    : '';
+  document.getElementById('modal-email').innerHTML = c.email + ' · Submitted ' + fmtDate(c.submitted_at) + ' · ' + fmtTime(c.time_taken_sec) + cvLink;
 
   const kpis = [
     { lbl: 'Weighted Score', val: c.weighted_score+'%', col: c.weighted_score>=74?'#34D399':c.weighted_score>=61?'#818CF8':c.weighted_score>=48?'#FCD34D':'#FCA5A5' },

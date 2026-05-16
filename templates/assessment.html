@@ -160,6 +160,26 @@ body::before {
 }
 .field-hint { font-size: 11.5px; color: var(--txt3); margin-top: 5px; }
 
+/* ── CV Upload ── */
+.upload-area {
+  width: 100%; padding: 20px;
+  background: var(--surface); border: 1.5px dashed var(--border);
+  border-radius: var(--radius-sm); cursor: pointer; text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-area:hover {
+  border-color: rgba(99,102,241,0.4);
+  background: rgba(99,102,241,0.04);
+}
+.upload-area.has-file {
+  border-color: rgba(16,185,129,0.4);
+  background: rgba(16,185,129,0.05);
+}
+.upload-icon { font-size: 26px; margin-bottom: 6px; }
+.upload-label { font-size: 13px; color: var(--txt2); }
+.upload-sub   { font-size: 11px; color: var(--txt3); margin-top: 3px; }
+.upload-name  { font-size: 13px; color: var(--success); font-weight: 600; }
+
 /* ── Test Screen ── */
 .test-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -423,6 +443,23 @@ body::before {
         <input type="email" id="inp-email" placeholder="your@email.com" autocomplete="email" />
         <div class="field-hint">This is your unique identifier. Each email can submit once.</div>
       </div>
+      <div class="field">
+        <label>CV / Resume <span style="color:var(--txt3)" style="font-weight:400;text-transform:none;">(Optional)</span></label>
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('inp-cv').click()">
+          <div id="upload-placeholder">
+            <div class="upload-icon">📎</div>
+            <div class="upload-label">Click to upload your CV or Resume</div>
+            <div class="upload-sub">PDF, DOC, DOCX · Max 5 MB</div>
+          </div>
+          <div id="upload-selected" style="display:none;">
+            <div class="upload-icon">✅</div>
+            <div class="upload-name" id="upload-filename"></div>
+            <div class="upload-sub" style="margin-top:4px;">Click to change file</div>
+          </div>
+        </div>
+        <input type="file" id="inp-cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" onchange="handleCVUpload(event)">
+        <div class="field-hint">Helps the team review your application holistically.</div>
+      </div>
 
       <div id="id-error" class="warn-msg" style="display:none;margin-top:0;margin-bottom:16px;"></div>
 
@@ -595,6 +632,7 @@ let cur = 0;
 let answers = new Array(60).fill(null);
 let timerSec = 0, timerInt = null;
 let userName = '', userEmail = '';
+let cvData = null, cvFilename = null, cvMimetype = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function showScreen(id) {
@@ -604,6 +642,30 @@ function showScreen(id) {
 }
 
 function goToIdentity() { showScreen('s-identity'); }
+
+function handleCVUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File too large. Please upload a CV under 5 MB.');
+    event.target.value = '';
+    return;
+  }
+
+  cvFilename = file.name;
+  cvMimetype = file.type || 'application/octet-stream';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    cvData = e.target.result.split(',')[1]; // strip data:...;base64, prefix
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-selected').style.display = 'block';
+    document.getElementById('upload-filename').textContent = file.name;
+    document.getElementById('upload-area').classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
 
 function startTest() {
   const nameEl  = document.getElementById('inp-name');
@@ -706,7 +768,10 @@ async function submitAssessment() {
     name: userName,
     email: userEmail,
     answers: answers,
-    time_taken_sec: timerSec
+    time_taken_sec: timerSec,
+    cv_data: cvData,
+    cv_filename: cvFilename,
+    cv_mimetype: cvMimetype
   };
 
   try {

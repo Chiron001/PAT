@@ -1,4 +1,4 @@
-import os, json, csv, io, statistics
+import os, json, csv, io, statistics, base64
 from datetime import datetime
 from functools import wraps
 from flask import Flask, request, jsonify, session, redirect, url_for, render_template, make_response
@@ -9,7 +9,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'fig-living-pat-2024-xK9mP2qR7v!')
 CORS(app)
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'FigLiving@2024')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'pat.db')
+# On Vercel only /tmp is writable; locally use project dir
+DB_PATH = '/tmp/pat.db' if os.environ.get('VERCEL') else os.path.join(os.path.dirname(__file__), 'pat.db')
 
 # ─── Questions & MBTI Data ────────────────────────────────────────────────────
 
@@ -132,11 +133,22 @@ def init_db():
             recommendation   TEXT,
             narrative        TEXT,
             red_flags_json   TEXT,
-            ip_address       TEXT
+            ip_address       TEXT,
+            cv_filename      TEXT,
+            cv_mimetype      TEXT,
+            cv_data          BLOB
         )
     """)
+    # Migration: add CV columns to existing databases
+    for col_def in [('cv_filename', 'TEXT'), ('cv_mimetype', 'TEXT'), ('cv_data', 'BLOB')]:
+        try:
+            conn.execute(f"ALTER TABLE submissions ADD COLUMN {col_def[0]} {col_def[1]}")
+        except Exception:
+            pass
     conn.commit()
     conn.close()
+
+init_db()
 
 # ─── Scoring & Analytics ─────────────────────────────────────────────────────
 
@@ -305,15 +317,25 @@ def submit():
     if not data:
         return jsonify({"error": "No data"}), 400
 
-    email   = (data.get("email") or "").strip().lower()
-    name    = (data.get("name")  or "").strip()
-    answers = data.get("answers", [])
-    time_s  = data.get("time_taken_sec", 0)
+    email       = (data.get("email") or "").strip().lower()
+    name        = (data.get("name")  or "").strip()
+    answers     = data.get("answers", [])
+    time_s      = data.get("time_taken_sec", 0)
+    cv_data_b64 = data.get("cv_data")
+    cv_filename = data.get("cv_filename")
+    cv_mimetype = data.get("cv_mimetype")
 
     if not email:
         return jsonify({"error": "Email is required"}), 400
     if len(answers) != 60:
         return jsonify({"error": "Incomplete submission"}), 400
+
+    cv_blob = None
+    if cv_data_b64:
+        try:
+            cv_blob = base64.b64decode(cv_data_b64)
+        except Exception:
+            cv_blob = None
 
     pct   = calc_dim_scores(answers)
     ws    = calc_weighted(pct)
@@ -346,8 +368,8 @@ def submit():
         INSERT INTO submissions
         (email, name, time_taken_sec, answers_json, dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
          overall_score, weighted_score, mbti_type, mbti_name, fit_rating, recommendation,
-         narrative, red_flags_json, ip_address)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         narrative, red_flags_json, ip_address, cv_filename, cv_mimetype, cv_data)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (
         email, name, time_s, json.dumps(answers),
         pct["A"], pct["B"], pct["C"], pct["D"], pct["E"], pct["F"],
@@ -355,7 +377,7 @@ def submit():
         mbti["type"], mbti["name"],
         ("Strong Fit" if overall >= 75 else "Good Fit" if overall >= 62 else "Partial Fit" if overall >= 48 else "Developmental"),
         rec, narrative_text, json.dumps(flags),
-        request.remote_addr
+        request.remote_addr, cv_filename, cv_mimetype, cv_blob
     ))
     conn.commit()
     conn.close()
@@ -439,14 +461,21 @@ def api_overview():
 @admin_required
 def api_candidates():
     conn = get_db()
-    rows = conn.execute("SELECT * FROM submissions ORDER BY weighted_score DESC").fetchall()
+    rows = conn.execute("""
+        SELECT id, email, name, submitted_at, time_taken_sec,
+               dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
+               overall_score, weighted_score, mbti_type, mbti_name,
+               fit_rating, recommendation, narrative, red_flags_json,
+               ip_address, cv_filename
+        FROM submissions ORDER BY weighted_score DESC
+    """).fetchall()
     conn.close()
     students = []
     for rank, r in enumerate(rows, 1):
         s = dict(r)
         s["rank"] = rank
         s["red_flags"] = json.loads(s.get("red_flags_json") or "[]")
-        del s["answers_json"]
+        s["has_cv"] = bool(s.get("cv_filename"))
         del s["red_flags_json"]
         students.append(s)
     return jsonify(students)
@@ -455,15 +484,36 @@ def api_candidates():
 @admin_required
 def api_candidate(sid):
     conn = get_db()
-    row = conn.execute("SELECT * FROM submissions WHERE id=?", (sid,)).fetchone()
+    row = conn.execute("""
+        SELECT id, email, name, submitted_at, time_taken_sec,
+               dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
+               overall_score, weighted_score, mbti_type, mbti_name,
+               fit_rating, recommendation, narrative, red_flags_json,
+               answers_json, ip_address, cv_filename
+        FROM submissions WHERE id=?
+    """, (sid,)).fetchone()
     conn.close()
     if not row:
         return jsonify({"error": "Not found"}), 404
     s = dict(row)
     s["red_flags"]  = json.loads(s.get("red_flags_json") or "[]")
     s["answers"]    = json.loads(s.get("answers_json") or "[]")
+    s["has_cv"]     = bool(s.get("cv_filename"))
     del s["answers_json"], s["red_flags_json"]
     return jsonify(s)
+
+@app.route("/api/admin/cv/<int:sid>")
+@admin_required
+def admin_cv(sid):
+    conn = get_db()
+    row = conn.execute("SELECT cv_data, cv_filename, cv_mimetype FROM submissions WHERE id=?", (sid,)).fetchone()
+    conn.close()
+    if not row or not row["cv_data"]:
+        return jsonify({"error": "No CV uploaded for this candidate"}), 404
+    response = make_response(bytes(row["cv_data"]))
+    response.headers["Content-Type"] = row["cv_mimetype"] or "application/octet-stream"
+    response.headers["Content-Disposition"] = f'inline; filename="{row["cv_filename"] or "cv"}"'
+    return response
 
 @app.route("/api/admin/export/csv")
 @admin_required
@@ -477,7 +527,7 @@ def export_csv():
     headers = ["Rank","Name","Email","Submitted At","Time Taken (min)","Recommendation",
                "Weighted Score","Overall Score","Analytical Depth","Aesthetic Sensibility",
                "Execution Drive","Ambiguity Tolerance","Stakeholder Orientation","Growth Mindset",
-               "MBTI Type","MBTI Name","Fit Rating","Red Flags","IP Address"]
+               "MBTI Type","MBTI Name","Fit Rating","Red Flags","CV Uploaded","IP Address"]
     writer.writerow(headers)
     for rank, s in enumerate(rows, 1):
         flags = json.loads(s.get("red_flags_json") or "[]")
@@ -487,7 +537,7 @@ def export_csv():
             s["recommendation"], s["weighted_score"], s["overall_score"],
             s["dim_a"], s["dim_b"], s["dim_c"], s["dim_d"], s["dim_e"], s["dim_f"],
             s["mbti_type"], s["mbti_name"], s["fit_rating"],
-            " | ".join(flags), s["ip_address"]
+            " | ".join(flags), "Yes" if s.get("cv_filename") else "No", s["ip_address"]
         ])
 
     response = make_response(output.getvalue())
@@ -533,7 +583,6 @@ def export_narratives():
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    init_db()
     print("  FIG Living P.A.T — Starting server")
     print("  Student test  →  http://localhost:5000/")
     print("  Admin panel   →  http://localhost:5000/admin")
