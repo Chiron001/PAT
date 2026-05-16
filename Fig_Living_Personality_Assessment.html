@@ -1,0 +1,328 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.screen{display:none}
+.screen.active{display:block}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.progress-bar-bg{background:var(--color-background-secondary);border-radius:20px;height:6px;width:100%;margin:8px 0 4px}
+.progress-bar-fill{height:6px;border-radius:20px;background:#378ADD;transition:width .4s}
+.q-block{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.q-text{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.6;margin-bottom:1rem}
+.options{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);cursor:pointer;font-size:13px;color:var(--color-text-primary);line-height:1.5;transition:background .15s,border .15s}
+.opt:hover{background:var(--color-background-secondary);border-color:var(--color-border-secondary)}
+.opt.selected{background:#E6F1FB;border-color:#378ADD;color:#0C447C}
+.opt input{margin-top:2px;flex-shrink:0;accent-color:#378ADD}
+.section-header{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary);padding:8px 0 12px;margin-top:4px}
+.dim-bar-wrap{margin-bottom:10px}
+.dim-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.dim-bar-bg{background:var(--color-background-secondary);height:8px;border-radius:20px}
+.dim-bar-fill{height:8px;border-radius:20px;transition:width .6s}
+.result-type-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:500;margin-bottom:8px}
+.fit-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
+.timer{font-size:12px;color:var(--color-text-tertiary);font-weight:500}
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:1.25rem;gap:10px}
+.btn-primary{padding:9px 20px;border-radius:var(--border-radius-md);background:#185FA5;color:#E6F1FB;font-size:13px;font-weight:500;border:none;cursor:pointer}
+.btn-primary:hover{background:#0C447C}
+.btn-sec{padding:9px 20px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-size:13px;font-weight:500;border:0.5px solid var(--color-border-secondary);cursor:pointer}
+.btn-sec:hover{background:var(--color-background-tertiary)}
+.warn{font-size:12px;color:var(--color-text-danger);margin-top:6px}
+.meta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1.25rem}
+.meta-chip{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 14px;font-size:12px;color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.meta-chip span{font-size:15px;font-weight:500;color:var(--color-text-primary);display:block}
+</style>
+
+<h2 class="sr-only">FIG Living Business Analyst personality assessment — 60 questions, 30–40 minutes, powered by MBTI and Big Five frameworks</h2>
+
+<div id="s-intro" class="screen active">
+<div class="card" style="border-top:3px solid #185FA5;border-radius:0 0 var(--border-radius-lg) var(--border-radius-lg)">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+    <div style="width:40px;height:40px;border-radius:var(--border-radius-md);background:#E6F1FB;display:flex;align-items:center;justify-content:center">
+      <i class="ti ti-bulb" style="font-size:20px;color:#185FA5" aria-hidden="true"></i>
+    </div>
+    <div>
+      <div style="font-size:16px;font-weight:500;color:var(--color-text-primary)">FIG Living — Business Analyst Assessment</div>
+      <div style="font-size:12px;color:var(--color-text-secondary)">Designed by FIG Living Talent · Bain methodology</div>
+    </div>
+  </div>
+  <div style="font-size:13px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:1rem">
+    This assessment identifies your working personality across six dimensions that matter most for a Business Analyst role at FIG Living — a fast-scaling D2C lighting brand at the intersection of design, data, and commerce.
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:1.25rem">
+    <div class="meta-chip"><span>60</span>Questions</div>
+    <div class="meta-chip"><span>30–40 min</span>Estimated time</div>
+    <div class="meta-chip"><span>6</span>Dimensions scored</div>
+    <div class="meta-chip"><span>14</span>MBTI types mapped</div>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:1.25rem;line-height:1.6">
+    <i class="ti ti-info-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>
+    There are no right or wrong answers. Select the option that most naturally reflects how you think, decide, and work — not what you believe is "ideal." Your results are confidential and used only for fit evaluation.
+  </div>
+  <div style="margin-bottom:1rem">
+    <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px">The six dimensions we measure:</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#378ADD;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Analytical depth</strong> — How you process data and draw conclusions</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#1D9E75;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Aesthetic sensibility</strong> — How you relate to design, brand, and visual thinking</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#D85A30;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Execution drive</strong> — How you move from insight to action</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#534AB7;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Ambiguity tolerance</strong> — How you operate with incomplete information</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#BA7517;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Stakeholder orientation</strong> — How you work with and influence people</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-secondary)"><span style="width:10px;height:10px;border-radius:50%;background:#D4537E;flex-shrink:0"></span><strong style="color:var(--color-text-primary);font-weight:500">Growth mindset</strong> — How you learn, adapt, and handle failure</div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="startTest()" style="width:100%">Begin assessment <i class="ti ti-arrow-right" style="font-size:13px;vertical-align:-1px" aria-hidden="true"></i></button>
+</div>
+</div>
+
+<div id="s-test" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <div style="font-size:12px;color:var(--color-text-secondary)">Question <span id="q-num">1</span> of 60</div>
+    <div class="timer" id="timer-display">00:00</div>
+  </div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+  <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:1rem" id="section-label"></div>
+  <div id="q-container"></div>
+  <div id="warn-msg" class="warn" style="display:none">Please select an answer to continue.</div>
+  <div class="nav-row">
+    <button class="btn-sec" id="btn-prev" onclick="prevQ()" style="display:none"><i class="ti ti-arrow-left" style="font-size:13px;vertical-align:-1px" aria-hidden="true"></i> Back</button>
+    <button class="btn-primary" id="btn-next" onclick="nextQ()" style="margin-left:auto">Next <i class="ti ti-arrow-right" style="font-size:13px;vertical-align:-1px" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<div id="s-result" class="screen">
+  <div id="result-content"></div>
+</div>
+
+<script>
+const questions=[
+  {s:"Analytical depth",d:"A",q:"You are handed a month of FIG Living's sales data across Amazon, Shopify, and B2B channels. Your first instinct is to:",opts:[["Build a unified pivot table and look for patterns across all three channels before drawing any conclusions",4],["Focus on whichever channel drove the most revenue last month and dig deep into that",2],["Ask the team what they already believe is happening, then verify or refute it with data",3],["Quickly calculate top-line totals and flag anything that looks obviously off",1]]},
+  {s:"Analytical depth",d:"A",q:"A metric you track shows a 22% drop in conversion rate on the FIG Living website over 2 weeks. You:",opts:[["Segment by device, traffic source, landing page, and product category before saying anything",4],["Check if there was a price change or campaign launch first — those are the usual suspects",3],["Alert the team immediately so they can make quick decisions while you dig deeper",2],["Run a quick funnel analysis to see exactly where users are dropping off",4]]},
+  {s:"Analytical depth",d:"A",q:"When working with a large dataset, which statement best describes you?",opts:[["I naturally build validation checks and sanity-test my numbers before sharing",4],["I focus on getting directionally correct insights fast rather than perfect numbers",2],["I enjoy the exploration phase but find detailed cleaning and structuring tedious",1],["I always document my methodology so anyone can reproduce my analysis",3]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living wants to forecast next quarter's D2C revenue. You would start by:",opts:[["Building a bottom-up model using SKU-level sell-through rates and traffic data",4],["Applying a growth percentage to last quarter's actuals based on known seasonality",2],["Researching how comparable D2C home décor brands forecast and adapting that approach",3],["Asking leadership what target they have in mind and working backwards",1]]},
+  {s:"Analytical depth",d:"A",q:"You notice two analyses from two team members give conflicting conclusions on the same data. You:",opts:[["Reconcile both analyses yourself by tracing the logic and assumptions in each",4],["Set up a quick meeting to understand each person's reasoning before deciding",3],["Go with the one that uses a more rigorous methodology",4],["Present both findings to the founder and let leadership decide",1]]},
+  {s:"Analytical depth",d:"A",q:"How do you typically handle uncertainty in your data?",opts:[["I quantify the uncertainty and include confidence ranges in my output",4],["I flag the gaps clearly and give my best estimate with caveats",3],["I gather more data before presenting anything incomplete",3],["I present what I have and note that assumptions may need revisiting",2]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living is considering entering a new city for B2B sales. What analysis would you prioritize first?",opts:[["Market sizing: number of hotels, restaurants, and premium residences in the city",4],["Competitor mapping: which lighting brands are already active in that market",3],["Internal readiness: can we deliver and service orders there reliably",2],["ROI projection: what revenue and margin could we reasonably expect in year one",4]]},
+  {s:"Analytical depth",d:"A",q:"You are presenting analysis to FIG Living's founder. You realize mid-slide that one of your numbers may be slightly off. You:",opts:[["Pause, acknowledge it, and offer to revert with corrected data before conclusions are drawn",4],["Quickly calculate the likely impact and note it as a minor caveat while continuing",3],["Correct it on the spot if possible and explain what changed",3],["Continue the presentation and fix it quietly in the follow-up deck",1]]},
+  {s:"Analytical depth",d:"A",q:"Which best describes how you feel about building Excel or Google Sheets models?",opts:[["I genuinely enjoy it — structuring logic into a model is satisfying",4],["I can do it but prefer handing off the model-building to someone else once I define the structure",2],["I build functional models but rarely obsess over making them clean or scalable",2],["I build models that others can easily understand and update without my help",4]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living's return rate increases by 3 percentage points in Q3. Your instinct is:",opts:[["This could be product quality, delivery damage, customer expectation mismatch, or seasonal — let me investigate all four",4],["Check customer feedback and support tickets first — the reason is usually hiding there",3],["Compare against industry benchmarks before deciding if this is actually a problem",3],["Map returns by SKU and channel to find the highest-concentration issue",4]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You are reviewing the copy for a new FIG Living product page. The data says conversions are low but the description is factually accurate. You:",opts:[["Rewrite the copy to be more emotionally resonant — facts don't sell, feelings do",4],["A/B test two versions: one functional, one emotional — let data decide",3],["Flag it to the marketing team and share what the data shows",2],["Suggest adding lifestyle imagery to complement the existing copy",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living is launching a new collection called Fold Series. You are asked to contribute to the naming of product variants. You:",opts:[["Research the visual and cultural references of 'fold' and propose names that carry that metaphor",4],["Suggest names that are easy to remember and search for",2],["Recommend naming conventions that are consistent with the existing product line",3],["Leave naming to the design/marketing team — my strength is in the numbers",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"When you walk into a beautifully designed room, what is your typical response?",opts:[["I immediately start noticing what makes it work — materials, proportions, light quality",4],["I notice that it feels good but couldn't immediately tell you why",2],["I appreciate it aesthetically but my mind quickly moves to other things",1],["I notice specific elements I'd want to replicate or avoid if I were designing a space",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living is choosing between two presentation deck templates — one is clean and minimalist, the other is dense with data charts. You are presenting to an investor. You choose:",opts:[["The minimalist one — clarity and elegance signal brand confidence",4],["The data-heavy one — investors need proof points, not aesthetics",2],["A hybrid: lead with a clean narrative, then support with data appendix",4],["Whichever one the founder prefers",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You are asked to review a proposed Instagram campaign for FIG Living. The creative looks beautiful but the targeting seems off. You:",opts:[["Flag both: the creative is strong but targeting will determine whether it works",4],["Focus on the targeting issue — that's what affects ROI",3],["Appreciate the creative quality and trust the marketing team knows their audience",1],["Ask to see the brief to understand whether the creative was meant for conversion or awareness",4]]},
+  {s:"Aesthetic sensibility",d:"B",q:"How important is it to you that the reports and dashboards you build look good?",opts:[["Very important — a well-designed report gets read and acted on. Ugly ones get ignored",4],["Somewhat important — functional first, aesthetics if time permits",2],["I'd rather spend that time on improving the analysis itself",1],["Important when presenting to external stakeholders, less so for internal use",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living's brand identity is described as 'warm Scandinavian minimalism.' If you were briefing a junior analyst on what that means for how they present data, you would say:",opts:[["Less is more — show only what is necessary, use warm neutral tones, and leave white space",4],["Keep it professional and clean — nothing flashy",2],["Match the deck palette to FIG's brand colors",3],["I'd let the design team handle the visual brief",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"A new competitor has launched a premium lighting brand with stronger D2C aesthetics than FIG Living. Your reaction as a business analyst is:",opts:[["Conduct a full competitor audit: product range, price points, visual positioning, and customer sentiment",4],["Flag it to the team with a summary of what they're doing differently",3],["Track their pricing and promotions over the next quarter",2],["Note it and continue focusing on FIG Living's current priorities",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"Which of these projects would excite you most at FIG Living?",opts:[["Redesigning the product detail page to improve conversion using UX and copy insights",4],["Building a gross margin model across all SKUs to identify pricing opportunities",3],["Creating a demand forecasting tool to reduce stockouts",2],["Mapping the B2B sales pipeline and building a lead scoring model",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You receive a brief to create a one-page report for FIG Living's board on business performance. You:",opts:[["Design it so every number tells a story and the visual hierarchy guides the reader's eye",4],["Include all key metrics with clear labels — completeness over design",2],["Use a standard business report template",1],["Write the content first, then think about layout and presentation",3]]},
+  {s:"Execution drive",d:"C",q:"FIG Living's founder asks you to have a market sizing analysis ready by tomorrow morning. It's 5 PM. You:",opts:[["Work through the evening — I'd rather deliver quality on time than ask for an extension",4],["Start immediately, identify the 20% of work that will give 80% of the answer, and deliver that",4],["Clarify what level of depth is actually needed before committing",3],["Scope it down, deliver a solid framework tonight, and offer to fill in tomorrow",3]]},
+  {s:"Execution drive",d:"C",q:"You have three urgent tasks from three different stakeholders all due on the same day. You:",opts:[["Prioritize by business impact and communicate clearly to all three about sequencing",4],["Ask each stakeholder to clarify urgency so I can sequence properly",3],["Handle the most complex one first to get it out of my head",2],["Do all three simultaneously and manage my time across them",2]]},
+  {s:"Execution drive",d:"C",q:"Which statement most accurately describes your relationship with deadlines?",opts:[["I treat deadlines as commitments — I will always find a way to deliver or flag early if I can't",4],["I work best under pressure — deadlines sharpen my focus",3],["I prefer to work steadily and not rush the quality of my output",2],["I communicate proactively if a deadline is at risk and always offer an updated timeline",4]]},
+  {s:"Execution drive",d:"C",q:"After delivering an analysis, you find a significant error in your model. You:",opts:[["Immediately inform the stakeholder, share the corrected version, and explain the impact of the change",4],["Fix it and send the updated version with a brief note about the correction",3],["Assess whether the error changes the conclusion before deciding to escalate",3],["Quietly update it and hope the error didn't affect any decisions yet",1]]},
+  {s:"Execution drive",d:"C",q:"You are building a monthly performance dashboard for FIG Living. Halfway through, you realize the data source is messy and will take 3 more days to clean. Deadline is tomorrow. You:",opts:[["Use cleaned data for the key metrics and flag that full data is pending — deliver something useful now",4],["Push for the deadline extension — better to deliver right than fast",2],["Build the dashboard structure and populate it with available data, noting gaps",4],["Escalate to your manager and ask for a decision on trade-offs",3]]},
+  {s:"Execution drive",d:"C",q:"How do you feel about starting tasks before you have all the information?",opts:[["Comfortable — I structure what I know, flag what I don't, and get started",4],["Somewhat comfortable — I need at least a clear output definition before I start",3],["Uncomfortable — I prefer clarity before investing effort",1],["Very comfortable — starting creates momentum and information gaps often fill themselves",4]]},
+  {s:"Execution drive",d:"C",q:"You finish your analysis two hours early. You:",opts:[["Use the time to stress-test your conclusions and look for holes in your logic",4],["Start on the next item in my queue",3],["Document your methodology clearly so others can build on it",3],["Take a break — deep work is tiring and rest improves future performance",2]]},
+  {s:"Execution drive",d:"C",q:"FIG Living is moving fast. New initiatives launch every 2-3 weeks. How do you feel about constantly shifting priorities?",opts:[["Energized — variety keeps me sharp and I adapt quickly",4],["Manageable — as long as there's clear communication and updated priorities",3],["Challenging — I work best when I can go deep on one thing",1],["Fine — I've learned to maintain parallel workstreams",3]]},
+  {s:"Execution drive",d:"C",q:"You've been asked to own a new project that is outside your current skillset. You:",opts:[["Accept it — I'll learn what I need to while doing it",4],["Accept it but carve out time upfront to develop the core skill I'm missing",4],["Ask if there's someone more suited and offer to support instead",2],["Accept it but set clear expectations about the learning curve",3]]},
+  {s:"Execution drive",d:"C",q:"How would your closest friend describe the way you work?",opts:[["Reliable and thorough — they always know I'll get it done and done well",4],["Creative and fast — I move quickly and figure things out along the way",3],["Thoughtful and careful — I take my time but the output is solid",2],["Flexible and collaborative — I work well with others and adjust to the team's rhythm",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"FIG Living has no formal job description for the BA role yet. You are the first hire. You feel:",opts:[["Excited — I get to define what good looks like",4],["Cautiously optimistic — I'll make it work but would prefer clearer expectations",3],["Somewhat anxious — I want to be evaluated against something fair",2],["Neutral — the work will define the role regardless of what's written",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You are three weeks into your role and still don't have full data access. You:",opts:[["Work with what I have, document what I need, and escalate formally if the gap is blocking key work",4],["Keep asking every few days until I get access",3],["Find alternative data sources or proxies in the meantime",4],["Wait — I don't want to overstep by going around the process",1]]},
+  {s:"Ambiguity tolerance",d:"D",q:"The founder gives you a brief: 'I want to understand our customer.' No further guidance. You:",opts:[["Ask three clarifying questions, then structure a customer insight framework and present it for alignment",4],["Start exploring available data and customer feedback and return with a hypothesis",4],["Request more context — I want to be sure I'm solving the right problem",2],["Design a full customer research plan and present it for approval before starting",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"Which environment would you thrive in most?",opts:[["A fast startup where roles are fluid and I create my own structure",4],["A structured team where my responsibilities are clearly defined",1],["A hybrid — a growing company that's adding structure as it scales",3],["A company where I have clear KPIs but latitude in how I achieve them",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"FIG Living has conflicting data from two sources on the same metric. No one knows which is right. You:",opts:[["Triangulate using a third reference, document the discrepancy, and use the more conservative figure",4],["Escalate it — I won't present analysis built on data I don't trust",2],["Use the source that is more frequently used internally and note the issue",3],["Build parallel scenarios using both figures and show sensitivity",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You're asked to present a recommendation to leadership but the evidence is 60/40, not conclusive. You:",opts:[["Present the recommendation clearly with the supporting evidence and quantify the risk of being wrong",4],["Present both sides and let leadership decide",2],["Gather more data before I'm willing to take a position",2],["Frame it as a hypothesis to be tested rather than a firm recommendation",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"A project you've been working on for 3 weeks is suddenly deprioritized. You:",opts:[["Document what I've done, archive it clearly, and redirect my energy",4],["Feel frustrated but move on quickly",3],["Ask for context on the reprioritization decision",3],["Use the freed time proactively to pick up something else useful",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You are given access to FIG Living's full data stack with no specific task. What do you do?",opts:[["Explore freely and build a catalog of interesting insights and anomalies",4],["Ask what the team most needs answered right now",3],["Start with the highest-impact area (e.g. revenue or margins) and build from there",4],["Set up a data quality audit before diving into analysis",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"How do you handle situations where the 'right answer' doesn't exist?",opts:[["I'm comfortable taking a reasoned position and defending it with logic",4],["I prefer to reframe the question until a clearer answer emerges",3],["I feel uncomfortable — I need more structure to work effectively",1],["I document the tradeoffs and present options rather than a single answer",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"Your manager is often unavailable and you frequently need to make judgment calls. You feel:",opts:[["Empowered — autonomy is how I do my best work",4],["Fine — I'll make the call and flag it later",3],["Nervous — I want validation before I act on important decisions",1],["Comfortable — but I document my reasoning carefully",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"FIG Living's marketing team disagrees with your analysis conclusion. You:",opts:[["Hear them out, understand their objection, and either update your view or explain why you stand by it",4],["Stand firm if I'm confident in the data — emotions shouldn't override evidence",2],["Explore whether we're answering the same question before deciding who's right",4],["Find a way to present both perspectives to the founder",2]]},
+  {s:"Stakeholder orientation",d:"E",q:"You need data from the operations team, but they're stretched thin. You:",opts:[["Understand their capacity constraints, prioritize what I truly need, and make it easy for them to help",4],["Escalate to my manager if I can't get what I need within a week",2],["Find workarounds to reduce my dependency on them",3],["Schedule a quick call to explain why this matters and what's at stake",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"The founder asks you for a quick verbal update on category performance. You:",opts:[["Give a crisp two-sentence summary with the most important number and a recommendation",4],["Walk through the full analysis — I want them to see the nuance",2],["Ask what decision they're trying to make so I give them exactly what they need",4],["Share the top three highlights and offer to go deeper on any of them",3]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you prefer to communicate your analysis findings?",opts:[["Written first — I craft the narrative carefully before any verbal walkthrough",3],["Visual — I lead with charts and let the data speak",3],["Verbal — I explain the story first, then point to the data",2],["Adaptive — I match the format to what the stakeholder needs",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"You notice that a senior team member is making a business decision based on an incorrect assumption. You:",opts:[["Respectfully raise it privately with clear evidence — being right isn't worth burning a relationship",4],["Raise it in the meeting — incorrect decisions hurt the business regardless of who's in the room",3],["Prepare a brief note with the correct data and share it after the meeting",3],["Wait to see if others catch it first",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you build trust with people you work with for the first time?",opts:[["By delivering on small commitments before asking for anything big",4],["By being transparent about my thinking and inviting pushback",3],["By understanding what they care about and making my work relevant to their goals",4],["By being responsive, reliable, and easy to work with",3]]},
+  {s:"Stakeholder orientation",d:"E",q:"FIG Living has a cross-functional meeting where tensions are high. Your analysis is at the center of the debate. You:",opts:[["Stay calm, present the data clearly, and help the team focus on the question rather than the conflict",4],["Let the leaders work it out — it's not my role to mediate",1],["Offer to walk through the methodology again so everyone is working from the same baseline",4],["Stay quiet and answer only direct questions",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"You've built a great dashboard but no one is using it. You:",opts:[["Do a discovery conversation with users to understand the gap between what I built and what they need",4],["Redesign it based on what I think they actually want",2],["Schedule a walkthrough session to onboard people to the tool",3],["Escalate — if leadership doesn't prioritize data-driven decisions, I can't force it",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"The founder asks you to validate a decision they've already made. You find the data doesn't support it. You:",opts:[["Share the data honestly and let them decide — my job is to inform, not please",4],["Soften the delivery but be clear about what the data shows",3],["Ask what they're trying to achieve — there may be a better path the data would support",4],["Present the data without a recommendation and let them draw conclusions",2]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you feel about presenting to leadership?",opts:[["Comfortable — I enjoy translating complexity into clarity for decision-makers",4],["Slightly nervous but I prepare thoroughly and usually do well",3],["I prefer written communication over live presentations",1],["It depends on how well I know the material — confidence drives comfort",3]]},
+  {s:"Growth mindset",d:"F",q:"You make a significant analytical error that leads to a wrong business decision. You:",opts:[["Own it fully, understand what went wrong, fix the output, and put a check in place to prevent recurrence",4],["Apologize sincerely and fix it as fast as possible",3],["Feel bad about it for a while but eventually move on",2],["Analyze why the error happened before deciding how to communicate it",3]]},
+  {s:"Growth mindset",d:"F",q:"You receive critical feedback on a report you put significant effort into. You:",opts:[["Listen carefully, ask clarifying questions, and revise with the feedback in mind",4],["Defend the parts I feel are correct and accept feedback on the parts I agree were weak",2],["Feel disappointed but use it as a learning moment",3],["Appreciate it — I actively want to know where I fell short",4]]},
+  {s:"Growth mindset",d:"F",q:"FIG Living is using tools you've never encountered before (Shopify analytics, Delhivery data, GoKwik). You:",opts:[["Figure it out independently — documentation and trial and error are my friends",4],["Ask a colleague for a quick orientation and then take it from there",3],["Request formal training or resources before using them in a live project",2],["Start exploring immediately and ask targeted questions as I go",4]]},
+  {s:"Growth mindset",d:"F",q:"Which of these statements best reflects your approach to learning?",opts:[["I seek out hard projects because that's where the learning happens",4],["I learn by doing — formal study is less effective than real problems",4],["I prefer structured learning first, then application",2],["I learn best from feedback — other people's perspective accelerates my growth",3]]},
+  {s:"Growth mindset",d:"F",q:"You're working in an area (e.g. D2C e-commerce) where you have limited prior experience. You:",opts:[["Immerse myself — read obsessively, talk to experts, and learn on the job",4],["Focus on applying transferable analytical skills and build domain knowledge gradually",3],["Feel challenged but motivated — I know I'll get there",3],["Prefer to work in areas where I already have domain context",1]]},
+  {s:"Growth mindset",d:"F",q:"How do you respond when a project fails to deliver the expected outcome?",opts:[["I run a retrospective — what did we assume, what did we miss, what would I do differently",4],["I feel frustrated but move forward — dwelling doesn't help",2],["I identify the root cause and ensure it doesn't happen again on my watch",4],["I take stock of my contribution and try to understand what I could have done differently",3]]},
+  {s:"Growth mindset",d:"F",q:"You are asked to mentor a junior analyst. You:",opts:[["Genuinely enjoy it — teaching makes me sharper and I care about people growing",4],["Do it if asked but it's not something I seek out",2],["Prefer to focus on my own work — mentoring is a time cost",1],["See it as part of the job and approach it with care and structure",3]]},
+  {s:"Growth mindset",d:"F",q:"What does 'career growth' mean to you?",opts:[["Increasing scope, impact, and autonomy — not just titles",4],["Building deep expertise in a domain I'm passionate about",3],["Financial progression and recognition for results",2],["Being given harder problems over time",4]]},
+  {s:"Growth mindset",d:"F",q:"FIG Living is a high-growth startup. Roles will evolve. How do you feel about that?",opts:[["Excited — I want my role to grow with the company",4],["Comfortable as long as growth is recognized and rewarded",3],["Somewhat uncertain — I prefer clarity on scope",1],["Ready — I've sought this kind of environment deliberately",4]]},
+  {s:"Growth mindset",d:"F",q:"Six months in, you feel you're not being stretched enough in your role. You:",opts:[["Proactively propose new projects or expanded scope to my manager",4],["Have an honest conversation about my ambitions and what it would take to grow",4],["Wait to see if opportunities arise naturally",1],["Look for ways to stretch within my current scope before escalating",3]]}
+];
+
+const dims={A:{label:"Analytical depth",color:"#378ADD",bg:"#E6F1FB"},B:{label:"Aesthetic sensibility",color:"#1D9E75",bg:"#E1F5EE"},C:{label:"Execution drive",color:"#D85A30",bg:"#FAECE7"},D:{label:"Ambiguity tolerance",color:"#534AB7",bg:"#EEEDFE"},E:{label:"Stakeholder orientation",color:"#BA7517",bg:"#FAEEDA"},F:{label:"Growth mindset",color:"#D4537E",bg:"#FBEAF0"}};
+
+const mbti=[
+  {type:"INTJ",name:"The Architect",fit:5,dim:{A:5,B:3,C:4,D:5,E:2,F:4},why:"Systematic, strategic, and deeply analytical. Natural model-builders who think long-term and challenge assumptions. Slight weakness in stakeholder warmth — needs coaching on communication style.",color:"#185FA5"},
+  {type:"INTP",name:"The Logician",fit:4,dim:{A:5,B:4,C:2,D:4,E:2,F:3},why:"Exceptional analytical thinkers with strong conceptual creativity. May underdeliver on execution speed and stakeholder management in fast D2C environment.",color:"#534AB7"},
+  {type:"ENTJ",name:"The Commander",fit:4,dim:{A:4,B:3,C:5,D:5,E:4,F:4},why:"Strong drivers with high execution energy. Natural leaders who can translate insight into action. May struggle to slow down for aesthetic nuance FIG Living requires.",color:"#185FA5"},
+  {type:"ENTP",name:"The Debater",fit:4,dim:{A:4,B:5,C:3,D:5,E:4,F:5},why:"Highly creative and cross-domain thinkers. Strong at connecting brand, data, and commerce. Can be inconsistent on follow-through — needs pairing with structure.",color:"#D85A30"},
+  {type:"ISTJ",name:"The Logistician",fit:3,dim:{A:4,B:2,C:5,D:2,E:3,F:3},why:"Extremely reliable and thorough. Strong operations fit but may struggle with the ambiguity and aesthetic demands of a D2C brand environment.",color:"#5F5E5A"},
+  {type:"ISFJ",name:"The Defender",fit:2,dim:{A:3,B:3,C:4,D:2,E:5,F:3},why:"Warm, dependable, and stakeholder-focused. Better fit for CRM or customer success than analytical strategy at a design-led brand.",color:"#888780"},
+  {type:"INFJ",name:"The Advocate",fit:3,dim:{A:3,B:5,C:3,D:3,E:4,F:4},why:"Deep aesthetic and empathetic intelligence. Strong brand intuition but may need analytical pairing to be effective in pure BA role.",color:"#D4537E"},
+  {type:"INFP",name:"The Mediator",fit:2,dim:{A:2,B:5,C:2,D:3,E:3,F:4},why:"High creative and aesthetic score, but low execution drive and structured analysis. Better fit for brand/content roles.",color:"#ED93B1"},
+  {type:"ESTJ",name:"The Executive",fit:3,dim:{A:3,B:2,C:5,D:3,E:4,F:3},why:"Strong operators. Good for process-heavy BA work but FIG Living needs creative analytical thinkers, not just efficient ones.",color:"#5F5E5A"},
+  {type:"ESFJ",name:"The Consul",fit:2,dim:{A:2,B:3,C:4,D:2,E:5,F:3},why:"Strong people orientation but limited fit for rigorous data-led BA work. Better suited to customer-facing or operations roles.",color:"#888780"},
+  {type:"ISTP",name:"The Virtuoso",fit:3,dim:{A:4,B:3,C:4,D:4,E:2,F:3},why:"Technically capable and autonomous workers. Good with data tools. May struggle with the strategic storytelling and stakeholder communication FIG needs.",color:"#5F5E5A"},
+  {type:"ISFP",name:"The Adventurer",fit:2,dim:{A:2,B:5,C:2,D:3,E:3,F:3},why:"High aesthetic score, low analytical. FIG Living's BA role requires both — this type is better placed in product or visual design.",color:"#D4537E"},
+  {type:"ESTP",name:"The Entrepreneur",fit:3,dim:{A:3,B:3,C:5,D:4,E:4,F:4},why:"High energy, action-oriented, adaptive. Strong for fast execution but may lack depth in structured analytical thinking.",color:"#BA7517"},
+  {type:"ENFP",name:"The Campaigner",fit:3,dim:{A:3,B:5,C:3,D:4,E:4,F:5},why:"Energetic, creative, and people-oriented. High aesthetic and growth mindset. Needs structure to channel into BA rigor. Consider for brand analytics hybrid roles.",color:"#D85A30"}
+];
+
+let cur=0,answers=new Array(60).fill(null),timerSec=0,timerInt=null;
+
+function startTest(){
+  document.getElementById('s-intro').classList.remove('active');
+  document.getElementById('s-test').classList.add('active');
+  timerInt=setInterval(()=>{timerSec++;let m=Math.floor(timerSec/60),s=timerSec%60;document.getElementById('timer-display').textContent=(m<10?'0'+m:m)+':'+(s<10?'0'+s:s);},1000);
+  renderQ();
+}
+
+function renderQ(){
+  const q=questions[cur];
+  document.getElementById('q-num').textContent=cur+1;
+  document.getElementById('progress-fill').style.width=((cur/60)*100)+'%';
+  document.getElementById('section-label').textContent='Section: '+q.s;
+  document.getElementById('warn-msg').style.display='none';
+  document.getElementById('btn-prev').style.display=cur>0?'block':'none';
+  document.getElementById('btn-next').textContent=cur===59?'View my results':'Next ›';
+
+  let html='<div class="q-block"><div class="q-text">'+(cur+1)+'. '+q.q+'</div><div class="options">';
+  q.opts.forEach((o,i)=>{
+    const sel=answers[cur]===i;
+    html+=`<label class="opt${sel?' selected':''}"><input type="radio" name="q" value="${i}" ${sel?'checked':''} onchange="selectOpt(${i})"><span>${o[0]}</span></label>`;
+  });
+  html+='</div></div>';
+  document.getElementById('q-container').innerHTML=html;
+}
+
+function selectOpt(i){
+  answers[cur]=i;
+  document.getElementById('warn-msg').style.display='none';
+  document.querySelectorAll('.opt').forEach((el,idx)=>{
+    el.classList.toggle('selected',idx===i);
+  });
+}
+
+function nextQ(){
+  if(answers[cur]===null){document.getElementById('warn-msg').style.display='block';return;}
+  if(cur===59){showResults();return;}
+  cur++;
+  renderQ();
+  document.querySelector('#s-test').scrollTop=0;
+}
+
+function prevQ(){if(cur>0){cur--;renderQ();}}
+
+function showResults(){
+  clearInterval(timerInt);
+  const mins=Math.round(timerSec/60);
+  const scores={A:0,B:0,C:0,D:0,E:0,F:0};
+  const counts={A:0,B:0,C:0,D:0,E:0,F:0};
+  questions.forEach((q,qi)=>{
+    if(answers[qi]!==null){
+      scores[q.d]+=q.opts[answers[qi]][1];
+      counts[q.d]++;
+    }
+  });
+  const pct={};
+  Object.keys(scores).forEach(k=>{pct[k]=Math.round((scores[k]/(counts[k]*4))*100);});
+
+  let bestMBTI=null,bestScore=-Infinity;
+  mbti.forEach(m=>{
+    let s=0;
+    Object.keys(m.dim).forEach(k=>{s+=Math.abs(pct[k]-m.dim[k]*20);});
+    const fit=m.fit*10-s*0.1;
+    if(fit>bestScore){bestScore=fit;bestMBTI=m;}
+  });
+
+  const overall=Math.round(Object.values(pct).reduce((a,b)=>a+b,0)/6);
+  let fitLabel='',fitColor='',fitBg='';
+  if(overall>=80){fitLabel='Strong fit';fitColor='#0F6E56';fitBg='#E1F5EE';}
+  else if(overall>=65){fitLabel='Good fit';fitColor='#185FA5';fitBg='#E6F1FB';}
+  else if(overall>=50){fitLabel='Partial fit';fitColor='#BA7517';fitBg='#FAEEDA';}
+  else{fitLabel='Developmental fit';fitColor='#993C1D';fitBg='#FAECE7';}
+
+  const topDims=Object.entries(pct).sort((a,b)=>b[1]-a[1]).slice(0,2).map(d=>dims[d[0]].label);
+  const lowDims=Object.entries(pct).sort((a,b)=>a[1]-b[1]).slice(0,1).map(d=>dims[d[0]].label);
+
+  let dimBars='';
+  Object.entries(dims).forEach(([k,v])=>{
+    dimBars+=`<div class="dim-bar-wrap">
+      <div class="dim-label"><span style="font-size:12px;font-weight:500;color:var(--color-text-primary)">${v.label}</span><span style="font-size:12px;font-weight:500;color:${v.color}">${pct[k]}%</span></div>
+      <div class="dim-bar-bg"><div class="dim-bar-fill" style="width:${pct[k]}%;background:${v.color}"></div></div>
+    </div>`;
+  });
+
+  let mbtiCards='';
+  const sorted=[...mbti].sort((a,b)=>b.fit-a.fit);
+  sorted.forEach(m=>{
+    const stars='★'.repeat(m.fit)+'☆'.repeat(5-m.fit);
+    mbtiCards+=`<div style="background:var(--color-background-primary);border:${m.type===bestMBTI.type?'2px solid '+m.color:'0.5px solid var(--color-border-tertiary)'};border-radius:var(--border-radius-lg);padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;font-weight:500;color:${m.color}">${m.type}</span>
+          <span style="font-size:12px;color:var(--color-text-secondary)">${m.name}</span>
+          ${m.type===bestMBTI.type?`<span style="font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;background:${m.color}20;color:${m.color}">Your type</span>`:''}
+        </div>
+        <span style="font-size:11px;color:#BA7517;letter-spacing:1px">${stars}</span>
+      </div>
+      <div style="font-size:11px;color:var(--color-text-secondary);line-height:1.6">${m.why}</div>
+    </div>`;
+  });
+
+  document.getElementById('s-test').classList.remove('active');
+  document.getElementById('s-result').classList.add('active');
+  document.getElementById('result-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
+      <div style="width:40px;height:40px;border-radius:var(--border-radius-md);background:#E6F1FB;display:flex;align-items:center;justify-content:center"><i class="ti ti-chart-radar" style="font-size:20px;color:#185FA5" aria-hidden="true"></i></div>
+      <div><div style="font-size:16px;font-weight:500">Your assessment results</div><div style="font-size:12px;color:var(--color-text-secondary)">Completed in ${mins} min · FIG Living BA Profile</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1.25rem">
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px"><div style="font-size:11px;color:var(--color-text-secondary)">Overall fit score</div><div style="font-size:22px;font-weight:500;color:var(--color-text-primary)">${overall}%</div></div>
+      <div style="background:${fitBg};border-radius:var(--border-radius-md);padding:12px 14px"><div style="font-size:11px;color:${fitColor}">Fit rating</div><div style="font-size:16px;font-weight:500;color:${fitColor}">${fitLabel}</div></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px"><div style="font-size:11px;color:var(--color-text-secondary)">Matched type</div><div style="font-size:16px;font-weight:500;color:${bestMBTI.color}">${bestMBTI.type}</div></div>
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px"><div style="font-size:11px;color:var(--color-text-secondary)">Type name</div><div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${bestMBTI.name}</div></div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:1rem">Your six dimension scores</div>
+      ${dimBars}
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px">Personality match: ${bestMBTI.type} — ${bestMBTI.name}</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6">${bestMBTI.why}</div>
+      <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--color-text-primary)">Key strengths for FIG Living</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7;margin-bottom:1rem">
+        ${topDims.map(d=>'<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0"><i class="ti ti-check" style="font-size:12px;color:#1D9E75" aria-hidden="true"></i>'+d+'</span>').join('')}
+      </div>
+      <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--color-text-primary)">Development area</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7">
+        ${lowDims.map(d=>'<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0"><i class="ti ti-info-circle" style="font-size:12px;color:#BA7517" aria-hidden="true"></i>'+d+'</span>').join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:1rem">All 14 MBTI types — FIG Living BA fit ranking</div>
+      ${mbtiCards}
+    </div>
+
+    <button class="btn-sec" onclick="restartTest()" style="width:100%;margin-top:8px"><i class="ti ti-refresh" style="font-size:13px;vertical-align:-1px" aria-hidden="true"></i> Retake assessment</button>
+  `;
+}
+
+function restartTest(){
+  cur=0;answers=new Array(60).fill(null);timerSec=0;
+  document.getElementById('s-result').classList.remove('active');
+  document.getElementById('s-intro').classList.add('active');
+}
+</script>

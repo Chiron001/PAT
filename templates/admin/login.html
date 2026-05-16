@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — FIG Living P.A.T</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #07070E; --card: #11111F; --border: rgba(255,255,255,0.07);
+  --primary: #6366F1; --primary-dk: #4F51C7; --primary-gl: rgba(99,102,241,0.22);
+  --txt: #E2E2F0; --txt2: #8888AA; --txt3: #4A4A6A;
+  --danger: #EF4444; --surface: #0D0D1A;
+  --font: -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+body {
+  font-family: var(--font); background: var(--bg); color: var(--txt);
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(99,102,241,0.1), transparent);
+  pointer-events: none;
+}
+.wrap { width: 100%; max-width: 400px; position: relative; z-index: 1; }
+.logo-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 32px; justify-content: center;
+}
+.logo-mark {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: white;
+}
+.logo-name { font-size: 16px; font-weight: 700; color: var(--txt); }
+.logo-sub  { font-size: 11px; color: var(--txt2); }
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px 30px;
+}
+.card-title { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+.card-sub   { font-size: 13px; color: var(--txt2); margin-bottom: 28px; }
+.field { margin-bottom: 20px; }
+.field label {
+  display: block; font-size: 11.5px; font-weight: 600; color: var(--txt2);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+}
+.field input {
+  width: 100%; padding: 13px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; color: var(--txt);
+  font-size: 15px; font-family: var(--font); outline: none; letter-spacing: 0.03em;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-gl);
+}
+.error-box {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #FCA5A5;
+  margin-bottom: 18px;
+}
+.btn {
+  width: 100%; padding: 13px; border-radius: 9px; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 600; font-family: var(--font);
+  background: var(--primary); color: white; transition: all 0.15s;
+}
+.btn:hover { background: var(--primary-dk); box-shadow: 0 4px 20px rgba(99,102,241,0.35); }
+.btn:active { transform: scale(0.98); }
+.footer-note {
+  text-align: center; font-size: 11.5px; color: var(--txt3);
+  margin-top: 20px; line-height: 1.6;
+}
+.lock-icon {
+  width: 48px; height: 48px; border-radius: 14px; margin: 0 auto 20px;
+  background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo-row">
+    <div class="logo-mark">FL</div>
+    <div>
+      <div class="logo-name">FIG Living</div>
+      <div class="logo-sub">Talent Analytics Dashboard</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lock-icon">🔒</div>
+    <div class="card-title" style="text-align:center">Admin Access</div>
+    <div class="card-sub" style="text-align:center">This dashboard is restricted to authorised FIG Living personnel only.</div>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/admin/login">
+      <div class="field">
+        <label>Admin Password</label>
+        <input type="password" name="password" placeholder="Enter password" autofocus autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn">Access Dashboard →</button>
+    </form>
+  </div>
+
+  <div class="footer-note">
+    FIG Living P.A.T · Personality Assessment Tool<br>
+    Unauthorised access is prohibited.
+  </div>
+</div>
+</body>
+</html>

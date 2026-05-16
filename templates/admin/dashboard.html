@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics Dashboard — FIG Living P.A.T</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #07070E; --sidebar:  #0A0A16; --surface: #0D0D1A;
+  --card:    #111120; --card-hi:  #161628; --border:  rgba(255,255,255,0.07);
+  --primary: #6366F1; --accent:   #818CF8; --primary-lt: rgba(99,102,241,0.12);
+  --txt:     #E2E2F0; --txt2:     #8888AA; --txt3:   #4A4A6A;
+  --success: #10B981; --warn:     #F59E0B; --danger:  #EF4444;
+  --green:   rgba(16,185,129,0.12); --amber: rgba(245,158,11,0.12);
+  --red:     rgba(239,68,68,0.12);  --blue:  rgba(99,102,241,0.12);
+  --dim-a:   #6366F1; --dim-b: #10B981; --dim-c: #F59E0B;
+  --dim-d:   #8B5CF6; --dim-e: #EC4899; --dim-f: #06B6D4;
+  --font:    -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --radius:  12px; --radius-sm: 8px;
+}
+
+body { font-family: var(--font); background: var(--bg); color: var(--txt); display: flex; min-height: 100vh; font-size: 14px; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px; min-height: 100vh; background: var(--sidebar);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; z-index: 50;
+}
+.sb-logo {
+  padding: 20px 18px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sb-mark {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg,#6366F1,#8B5CF6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+}
+.sb-brand { font-size: 13px; font-weight: 700; }
+.sb-sub   { font-size: 10px; color: var(--txt3); margin-top: 1px; }
+
+.sb-nav { padding: 12px 10px; flex: 1; }
+.sb-section-label {
+  font-size: 10px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 12px 8px 6px;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 13px; color: var(--txt2);
+  transition: all 0.15s; margin-bottom: 2px;
+  border: 1px solid transparent; user-select: none;
+}
+.sb-item:hover { background: rgba(255,255,255,0.04); color: var(--txt); }
+.sb-item.active { background: var(--primary-lt); color: var(--accent); border-color: rgba(99,102,241,0.2); }
+.sb-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+
+.sb-footer { padding: 14px 18px; border-top: 1px solid var(--border); }
+.sb-footer a { font-size: 12px; color: var(--txt3); text-decoration: none; display: block; margin-bottom: 6px; }
+.sb-footer a:hover { color: var(--txt2); }
+
+/* ── Main ── */
+.main { margin-left: 220px; flex: 1; min-height: 100vh; }
+.topbar {
+  padding: 16px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--sidebar); position: sticky; top: 0; z-index: 40;
+}
+.page-title { font-size: 16px; font-weight: 700; }
+.page-sub   { font-size: 11.5px; color: var(--txt3); margin-top: 1px; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+.content { padding: 24px 28px; }
+
+/* ── Sections ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Cards ── */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 4px; }
+.card-sub   { font-size: 11.5px; color: var(--txt3); margin-bottom: 14px; }
+
+/* ── KPI Grid ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; border-left: 3px solid;
+}
+.kpi-val  { font-size: 28px; font-weight: 700; margin-bottom: 2px; }
+.kpi-lbl  { font-size: 11.5px; color: var(--txt2); }
+.kpi-sub  { font-size: 10.5px; color: var(--txt3); margin-top: 4px; }
+
+/* ── Charts ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.chart-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap-lg { height: 280px; }
+
+/* ── Tables ── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--card-hi); padding: 10px 14px; text-align: left;
+  font-size: 11px; font-weight: 600; color: var(--txt3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  border-bottom: 1px solid var(--border);
+}
+tbody td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* ── Badges / Pills ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid;
+}
+.badge-sr  { background: rgba(99,102,241,0.12); color:#818CF8; border-color:rgba(99,102,241,0.25); }
+.badge-rec { background: rgba(16,185,129,0.1);  color:#34D399; border-color:rgba(16,185,129,0.25); }
+.badge-cav { background: rgba(245,158,11,0.1);  color:#FCD34D; border-color:rgba(245,158,11,0.25); }
+.badge-nr  { background: rgba(239,68,68,0.1);   color:#FCA5A5; border-color:rgba(239,68,68,0.25); }
+
+/* ── Progress bars ── */
+.bar-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.bar-fill  { height: 6px; border-radius: 6px; transition: width 0.6s ease; }
+
+/* ── Rank cards ── */
+.rank-list { display: flex; flex-direction: column; gap: 10px; }
+.rank-card {
+  background: var(--card-hi); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 14px; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.rank-card:hover { border-color: rgba(99,102,241,0.3); }
+.rank-num {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.rank-info { flex: 1; min-width: 0; }
+.rank-name  { font-size: 14px; font-weight: 600; color: var(--txt); }
+.rank-email { font-size: 11.5px; color: var(--txt3); }
+.rank-bars  { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.dim-row    { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--txt2); }
+.dim-row-label { width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dim-track  { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 5px; }
+.dim-fill   { height: 5px; border-radius: 5px; }
+.dim-pct    { width: 30px; text-align: right; flex-shrink: 0; }
+
+/* ── Narrative box ── */
+.narrative-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px; font-size: 12.5px; line-height: 1.75; color: var(--txt2);
+  white-space: pre-wrap; font-family: 'Courier New', monospace; overflow: auto;
+  max-height: 300px;
+}
+.narrative-section { margin-bottom: 24px; }
+.narrative-name { font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+
+/* ── Dim stats cards ── */
+.dim-stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 18px; }
+.dim-stat-card {
+  background: var(--card-hi); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  border-left: 3px solid;
+}
+.dim-stat-card .val { font-size: 22px; font-weight: 700; }
+.dim-stat-card .lbl { font-size: 11px; color: var(--txt2); margin-top: 3px; }
+.dim-stat-card .sub { font-size: 11px; color: var(--txt3); margin-top: 6px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  font-size: 12.5px; font-weight: 600; border: none; cursor: pointer;
+  font-family: var(--font); transition: all 0.15s;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #4F51C7; }
+.btn-ghost { background: transparent; color: var(--txt2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--card-hi); color: var(--txt); }
+.btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
+.btn-success:hover { background: rgba(16,185,129,0.25); }
+
+/* ── Search ── */
+.search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.search-input {
+  flex: 1; padding: 9px 14px; background: var(--card-hi);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--txt); font-size: 13px; font-family: var(--font); outline: none;
+}
+.search-input:focus { border-color: var(--primary); }
+.search-input::placeholder { color: var(--txt3); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(7,7,14,0.8); display: none;
+  align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  width: 100%; max-width: 680px; max-height: 85vh; overflow-y: auto;
+  padding: 28px 26px;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.modal-close { background: none; border: none; color: var(--txt3); font-size: 20px; cursor: pointer; }
+.modal-close:hover { color: var(--txt); }
+
+/* ── Radar chart in modal ── */
+.radar-wrap { width: 240px; height: 240px; margin: 0 auto 16px; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--txt3); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(2,1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .dim-stat-grid { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+}
+
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-sm { font-size: 12px; }
+.text-muted { color: var(--txt2); }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-mark">FL</div>
+    <div>
+      <div class="sb-brand">FIG Living P.A.T</div>
+      <div class="sb-sub">Talent Analytics</div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-section-label">Dashboard</div>
+    <div class="sb-item active" onclick="navTo('overview')" id="nav-overview">
+      <span class="sb-icon">📊</span> Overview
+    </div>
+    <div class="sb-item" onclick="navTo('candidates')" id="nav-candidates">
+      <span class="sb-icon">👥</span> All Candidates
+    </div>
+    <div class="sb-item" onclick="navTo('rankings')" id="nav-rankings">
+      <span class="sb-icon">🏆</span> Rankings
+    </div>
+
+    <div class="sb-section-label">Deep Analysis</div>
+    <div class="sb-item" onclick="navTo('bestfits')" id="nav-bestfits">
+      <span class="sb-icon">⭐</span> Best Fits
+    </div>
+    <div class="sb-item" onclick="navTo('concerns')" id="nav-concerns">
+      <span class="sb-icon">⚠️</span> Concerns
+    </div>
+    <div class="sb-item" onclick="navTo('dimensions')" id="nav-dimensions">
+      <span class="sb-icon">📐</span> Dimension Analysis
+    </div>
+    <div class="sb-item" onclick="navTo('cohort')" id="nav-cohort">
+      <span class="sb-icon">🔬</span> Cohort Insights
+    </div>
+
+    <div class="sb-section-label">Export</div>
+    <div class="sb-item" onclick="navTo('export')" id="nav-export">
+      <span class="sb-icon">📤</span> Export Data
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <a href="/admin/logout">⬅ Logout</a>
+    <div style="font-size:10px;color:var(--txt3);margin-top:4px;">FIG Living · Admin Only</div>
+  </div>
+</div>
+
+<!-- ── Main Content ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Overview</div>
+      <div class="page-sub" id="page-sub">Assessment analytics dashboard</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="refreshData()">↻ Refresh</button>
+      <a href="/admin/logout" class="btn btn-ghost">Logout</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── OVERVIEW ── -->
+    <div id="section-overview" class="section active">
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card" style="border-left-color:#6366F1">
+          <div class="kpi-val" id="kpi-total" style="color:#818CF8">—</div>
+          <div class="kpi-lbl">Total Candidates</div>
+          <div class="kpi-sub">Submitted assessments</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:#10B981">
+          <div class="kpi-val" id="kpi-avg" style="color:#34D399">—</div>
+          <div class="kpi-lbl">Avg Weighted Fit Score</div>
+          <div class="kpi-sub">Composite score (100%)</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:#6366F1">
+          <div class="kpi-val" id="kpi-sr" style="color:#818CF8">—</div>
+          <div class="kpi-lbl">Strongly Recommended</div>
+          <div class="kpi-sub">Priority interview candidates</div>
+        </div>
+        <div class="kpi-card" style="border-left-color:#EF4444">
+          <div class="kpi-val" id="kpi-nr" style="color:#FCA5A5">—</div>
+          <div class="kpi-lbl">Not Recommended</div>
+          <div class="kpi-sub">Below threshold candidates</div>
+        </div>
+      </div>
+
+      <div class="chart-grid mb-20">
+        <div class="card">
+          <div class="card-title">Recommendation Distribution</div>
+          <div class="card-sub">Cohort breakdown by tier</div>
+          <div class="chart-wrap"><canvas id="chart-rec-dist"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dimension Averages</div>
+          <div class="card-sub">Cohort mean per dimension</div>
+          <div class="chart-wrap"><canvas id="chart-dim-avg"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-grid mb-20">
+        <div class="card">
+          <div class="card-title">Submission Timeline</div>
+          <div class="card-sub">Assessments submitted per day</div>
+          <div class="chart-wrap"><canvas id="chart-timeline"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">MBTI Type Distribution</div>
+          <div class="card-sub">Personality profiles across cohort</div>
+          <div class="chart-wrap"><canvas id="chart-mbti"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title mb-16">Dimension Health Check</div>
+        <div id="dim-health-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── ALL CANDIDATES ── -->
+    <div id="section-candidates" class="section">
+      <div class="search-row">
+        <input class="search-input" id="candidate-search" placeholder="Search by name or email…" oninput="filterCandidates()">
+        <select class="search-input" id="rec-filter" onchange="filterCandidates()" style="max-width:200px;">
+          <option value="">All Recommendations</option>
+          <option value="Strongly Recommended">Strongly Recommended</option>
+          <option value="Recommended">Recommended</option>
+          <option value="Consider with Caveats">Consider with Caveats</option>
+          <option value="Not Recommended">Not Recommended</option>
+        </select>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-wrap">
+          <table id="candidates-table">
+            <thead>
+              <tr>
+                <th>Rank</th><th>Name</th><th>Email</th><th>Submitted</th>
+                <th>Time</th><th>Weighted</th><th>Analytical</th><th>Execution</th>
+                <th>Recommendation</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="candidates-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:var(--txt3);margin-top:10px;" id="candidate-count"></div>
+    </div>
+
+    <!-- ── RANKINGS ── -->
+    <div id="section-rankings" class="section">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--txt2);text-transform:uppercase;letter-spacing:0.06em;font-size:11px;">Ranked by Weighted Fit Score</div>
+          <div class="rank-list" id="rank-list"></div>
+        </div>
+        <div class="card" style="align-self:start;">
+          <div class="card-title">Scoring Methodology</div>
+          <div class="card-sub">FIG Living BA Role — Weighted Competency Model</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">CRITICAL (56% weight)</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--dim-a)">● Analytical Depth</span><span style="color:var(--txt2)">28%</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--dim-c)">● Execution Drive</span><span style="color:var(--txt2)">28%</span></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px;">
+              <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">CORE (32% weight)</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--dim-f)">● Growth Mindset</span><span style="color:var(--txt2)">17%</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--dim-d)">● Ambiguity Tolerance</span><span style="color:var(--txt2)">15%</span></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px;">
+              <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">ENABLING (12% weight)</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--dim-e)">● Stakeholder Orientation</span><span style="color:var(--txt2)">7%</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--dim-b)">● Aesthetic Sensibility</span><span style="color:var(--txt2)">5%</span></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--txt3);">
+              <div style="margin-bottom:4px;"><strong style="color:#34D399">Strongly Recommended:</strong> ≥74% weighted, both critical ≥65%</div>
+              <div style="margin-bottom:4px;"><strong style="color:#6366F1">Recommended:</strong> ≥61%, both critical ≥52%</div>
+              <div style="margin-bottom:4px;"><strong style="color:#FCD34D">Consider:</strong> ≥48%, critical ≥40%</div>
+              <div><strong style="color:#FCA5A5">Not Recommended:</strong> Below thresholds</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BEST FITS ── -->
+    <div id="section-bestfits" class="section">
+      <div class="card mb-20" style="background:rgba(16,185,129,0.05);border-color:rgba(16,185,129,0.2);">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="font-size:24px;">⭐</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--success);margin-bottom:4px;">Best Fit Candidates — Bain Analysis</div>
+            <div style="font-size:12.5px;color:var(--txt2);line-height:1.7;">
+              These candidates score in the <strong style="color:var(--txt)">Strongly Recommended</strong> or <strong style="color:var(--txt)">Recommended</strong> tiers. Narratives below apply Bain-style competency analysis: structured around FIG Living's weighted BA role framework, with cohort-relative positioning and interview-focused conclusions.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="bestfits-list"></div>
+    </div>
+
+    <!-- ── CONCERNS ── -->
+    <div id="section-concerns" class="section">
+      <div class="card mb-20" style="background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.2);">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="font-size:24px;">⚠️</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--danger);margin-bottom:4px;">Not Recommended / Consider with Caveats</div>
+            <div style="font-size:12.5px;color:var(--txt2);line-height:1.7;">
+              These candidates fall below FIG Living's minimum competency thresholds. Analysis identifies specific dimension failures and red flags. Use this section to document your screening rationale.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="concerns-list"></div>
+    </div>
+
+    <!-- ── DIMENSION ANALYSIS ── -->
+    <div id="section-dimensions" class="section">
+      <div class="dim-stat-grid" id="dim-stat-grid"></div>
+
+      <div class="chart-grid mb-20">
+        <div class="card">
+          <div class="card-title">Analytical Depth Distribution</div>
+          <div class="card-sub">All candidate scores — Dimension A</div>
+          <div class="chart-wrap"><canvas id="chart-dim-a"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Execution Drive Distribution</div>
+          <div class="card-sub">All candidate scores — Dimension C</div>
+          <div class="chart-wrap"><canvas id="chart-dim-c"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-grid mb-20">
+        <div class="card">
+          <div class="card-title">Growth Mindset Distribution</div>
+          <div class="card-sub">All candidate scores — Dimension F</div>
+          <div class="chart-wrap"><canvas id="chart-dim-f"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Ambiguity Tolerance Distribution</div>
+          <div class="card-sub">All candidate scores — Dimension D</div>
+          <div class="chart-wrap"><canvas id="chart-dim-d"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card mb-20">
+        <div class="card-title">All Dimensions — Cohort Radar</div>
+        <div class="card-sub">Average scores across all six dimensions</div>
+        <div style="max-width:380px;height:320px;margin:0 auto;">
+          <canvas id="chart-cohort-radar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COHORT INSIGHTS ── -->
+    <div id="section-cohort" class="section">
+      <div class="chart-grid mb-20">
+        <div class="card">
+          <div class="card-title">Weighted Score Distribution</div>
+          <div class="card-sub">Histogram of composite fit scores</div>
+          <div class="chart-wrap chart-wrap-lg"><canvas id="chart-score-hist"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Cohort Percentile Ladder</div>
+          <div class="card-sub">All candidates ranked by weighted score</div>
+          <div class="chart-wrap chart-wrap-lg" style="overflow-y:auto;height:280px;">
+            <div id="percentile-ladder"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-20">
+        <div class="card-title mb-16">Critical Dimension Cross-Tab</div>
+        <div style="font-size:12.5px;color:var(--txt2);margin-bottom:14px;">
+          How Analytical Depth (A) and Execution Drive (C) — the two critical dimensions (56% combined weight) — correlate with final recommendation tier.
+        </div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-scatter"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title mb-16">Cohort Summary Statistics</div>
+        <div id="cohort-stats-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── EXPORT ── -->
+    <div id="section-export" class="section">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+        <div class="card" style="text-align:center;padding:28px 20px;">
+          <div style="font-size:36px;margin-bottom:12px;">📋</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">CSV Export</div>
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:16px;line-height:1.6;">All candidate data including scores, recommendations, red flags. Open in Excel or Google Sheets.</div>
+          <a href="/api/admin/export/csv" class="btn btn-success" style="width:100%;justify-content:center;text-decoration:none;">↓ Download CSV</a>
+        </div>
+        <div class="card" style="text-align:center;padding:28px 20px;">
+          <div style="font-size:36px;margin-bottom:12px;">📦</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">JSON Export</div>
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:16px;line-height:1.6;">Complete structured data including raw answers and full metadata. For programmatic analysis.</div>
+          <a href="/api/admin/export/json" class="btn btn-success" style="width:100%;justify-content:center;text-decoration:none;">↓ Download JSON</a>
+        </div>
+        <div class="card" style="text-align:center;padding:28px 20px;">
+          <div style="font-size:36px;margin-bottom:12px;">📄</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Narrative Report</div>
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:16px;line-height:1.6;">Full Bain-style written narratives for all candidates. Ready for decision-maker review.</div>
+          <a href="/api/admin/export/narratives" class="btn btn-success" style="width:100%;justify-content:center;text-decoration:none;">↓ Download TXT</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title mb-16">Data Dictionary</div>
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>email</code></td><td>string</td><td>Unique identifier — student email address</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Student's full name</td></tr>
+            <tr><td><code>weighted_score</code></td><td>float%</td><td>Composite fit score using FIG Living's weighted model (A×28% + C×28% + F×17% + D×15% + E×7% + B×5%)</td></tr>
+            <tr><td><code>overall_score</code></td><td>float%</td><td>Simple average across all 6 dimensions</td></tr>
+            <tr><td><code>dim_a–dim_f</code></td><td>float%</td><td>Individual dimension scores (0–100%)</td></tr>
+            <tr><td><code>recommendation</code></td><td>string</td><td>Tier: Strongly Recommended / Recommended / Consider with Caveats / Not Recommended</td></tr>
+            <tr><td><code>mbti_type</code></td><td>string</td><td>Best-matched MBTI personality type</td></tr>
+            <tr><td><code>fit_rating</code></td><td>string</td><td>Simpler label: Strong Fit / Good Fit / Partial Fit / Developmental</td></tr>
+            <tr><td><code>time_taken_sec</code></td><td>integer</td><td>Time to complete in seconds</td></tr>
+            <tr><td><code>red_flags</code></td><td>array</td><td>Specific concerns flagged by the scoring engine</td></tr>
+            <tr><td><code>narrative</code></td><td>text</td><td>Full Bain-style analysis text</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ── Candidate Detail Modal ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-header">
+      <div>
+        <div id="modal-name" style="font-size:18px;font-weight:700;"></div>
+        <div id="modal-email" style="font-size:12px;color:var(--txt3);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;" id="modal-kpis"></div>
+
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:20px;margin-bottom:20px;">
+      <div class="radar-wrap"><canvas id="modal-radar"></canvas></div>
+      <div id="modal-dims"></div>
+    </div>
+
+    <div id="modal-flags" style="margin-bottom:16px;"></div>
+
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Bain Analysis Narrative</div>
+      <div class="narrative-box" id="modal-narrative"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ───────────────────────────────────────────────────────────────────
+const DIM_COLORS = { A:'#6366F1', B:'#10B981', C:'#F59E0B', D:'#8B5CF6', E:'#EC4899', F:'#06B6D4' };
+const DIM_LABELS = { A:'Analytical Depth', B:'Aesthetic Sensibility', C:'Execution Drive', D:'Ambiguity Tolerance', E:'Stakeholder Orientation', F:'Growth Mindset' };
+const REC_BADGE  = {
+  'Strongly Recommended': 'badge-sr',
+  'Recommended':          'badge-rec',
+  'Consider with Caveats':'badge-cav',
+  'Not Recommended':      'badge-nr',
+};
+
+let allCandidates = [];
+let overviewData  = {};
+let charts = {};
+let modalRadarChart = null;
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+const NAV_META = {
+  overview:   { title: 'Overview',         sub: 'Assessment analytics at a glance' },
+  candidates: { title: 'All Candidates',   sub: 'Complete submission list with scores' },
+  rankings:   { title: 'Rankings',         sub: 'Sorted by weighted fit score' },
+  bestfits:   { title: 'Best Fit Candidates', sub: 'Strongly Recommended & Recommended tiers — Bain-style analysis' },
+  concerns:   { title: 'Concerns & Not Recommended', sub: 'Candidates below competency thresholds' },
+  dimensions: { title: 'Dimension Analysis', sub: 'Per-dimension statistics and distributions' },
+  cohort:     { title: 'Cohort Insights',  sub: 'Distributions, cross-tabs, and summary statistics' },
+  export:     { title: 'Export Data',      sub: 'Download all assessment data' },
+};
+
+function navTo(id) {
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('nav-' + id).classList.add('active');
+  document.getElementById('section-' + id).classList.add('active');
+  document.getElementById('page-title').textContent = NAV_META[id].title;
+  document.getElementById('page-sub').textContent   = NAV_META[id].sub;
+  renderSection(id);
+}
+
+function renderSection(id) {
+  if (id === 'overview')    renderOverview();
+  if (id === 'candidates')  renderCandidates();
+  if (id === 'rankings')    renderRankings();
+  if (id === 'bestfits')    renderBestFits();
+  if (id === 'concerns')    renderConcerns();
+  if (id === 'dimensions')  renderDimensions();
+  if (id === 'cohort')      renderCohort();
+}
+
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function loadAll() {
+  const [ovRes, cndRes] = await Promise.all([
+    fetch('/api/admin/overview'),
+    fetch('/api/admin/candidates'),
+  ]);
+  overviewData  = await ovRes.json();
+  allCandidates = await cndRes.json();
+  renderOverview();
+}
+
+async function refreshData() { await loadAll(); renderSection(currentSection()); }
+
+function currentSection() {
+  const active = document.querySelector('.sb-item.active');
+  return active ? active.id.replace('nav-', '') : 'overview';
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function makeChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, cfg);
+}
+
+const CHART_DEFAULTS = {
+  plugins: { legend: { labels: { color: '#8888AA', font: { size: 11 } } } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888AA', font: { size: 10 } } },
+    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888AA', font: { size: 10 } } }
+  }
+};
+
+function recBadge(rec) {
+  const cls = REC_BADGE[rec] || 'badge-cav';
+  return `<span class="badge ${cls}">${rec}</span>`;
+}
+
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+}
+
+function fmtTime(sec) {
+  if (!sec) return '—';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}m ${s}s`;
+}
+
+// ── Overview ─────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const d = overviewData;
+  document.getElementById('kpi-total').textContent = d.total ?? '—';
+  document.getElementById('kpi-avg').textContent   = d.avg_weighted != null ? d.avg_weighted + '%' : '—';
+  document.getElementById('kpi-sr').textContent    = d.strongly_rec ?? '—';
+  document.getElementById('kpi-nr').textContent    = d.not_rec ?? '—';
+
+  if (!d.total) return;
+
+  // Rec distribution donut
+  const recLabels = Object.keys(d.rec_dist || {});
+  const recColors = { 'Strongly Recommended':'#6366F1','Recommended':'#10B981','Consider with Caveats':'#F59E0B','Not Recommended':'#EF4444' };
+  makeChart('chart-rec-dist', {
+    type: 'doughnut',
+    data: {
+      labels: recLabels,
+      datasets: [{ data: recLabels.map(l => d.rec_dist[l]), backgroundColor: recLabels.map(l => recColors[l] || '#888'), borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { color: '#8888AA', font: { size: 11 }, padding: 12 } } }, cutout: '62%' }
+  });
+
+  // Dimension bar
+  const dims = ['A','B','C','D','E','F'];
+  makeChart('chart-dim-avg', {
+    type: 'bar',
+    data: {
+      labels: dims.map(k => DIM_LABELS[k].split(' ')[0]),
+      datasets: [{ label: 'Average %', data: dims.map(k => d.dim_avgs?.[k] ?? 0), backgroundColor: dims.map(k => DIM_COLORS[k] + 'CC'), borderRadius: 6, borderSkipped: false }]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { legend: { display: false } }, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, min: 0, max: 100 } } }
+  });
+
+  // Timeline
+  const tl = d.timeline || [];
+  makeChart('chart-timeline', {
+    type: 'line',
+    data: {
+      labels: tl.map(t => t.date),
+      datasets: [{ label: 'Submissions', data: tl.map(t => t.count), borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#6366F1' }]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { legend: { display: false } } }
+  });
+
+  // MBTI distribution
+  const mbtiEntries = Object.entries(d.mbti_dist || {}).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  makeChart('chart-mbti', {
+    type: 'bar',
+    data: {
+      labels: mbtiEntries.map(e => e[0]),
+      datasets: [{ label: 'Count', data: mbtiEntries.map(e => e[1]), backgroundColor: '#8B5CF6CC', borderRadius: 4, borderSkipped: false }]
+    },
+    options: { ...CHART_DEFAULTS, indexAxis: 'y', plugins: { legend: { display: false } } }
+  });
+
+  // Dimension health grid
+  const st = d.dim_stats || {};
+  const healthHtml = Object.entries(st).map(([k,v]) => `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+      <div style="width:120px;flex-shrink:0;font-size:12px;color:${DIM_COLORS[k]};font-weight:600;">${DIM_LABELS[k]}</div>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-bottom:3px;">
+          <span>Min: ${v.min}%</span><span>Avg: ${v.avg}%</span><span>Max: ${v.max}%</span><span>σ: ${v.std}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${v.avg}%;background:${DIM_COLORS[k]}"></div></div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('dim-health-grid').innerHTML = healthHtml || '<div style="color:var(--txt3);font-size:13px;">No data yet.</div>';
+}
+
+// ── All Candidates ────────────────────────────────────────────────────────────
+function renderCandidates() {
+  filterCandidates();
+}
+
+function filterCandidates() {
+  const q   = (document.getElementById('candidate-search')?.value || '').toLowerCase();
+  const rec = document.getElementById('rec-filter')?.value || '';
+  let filtered = allCandidates.filter(c => {
+    const matchQ   = !q || (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q);
+    const matchRec = !rec || c.recommendation === rec;
+    return matchQ && matchRec;
+  });
+
+  const tbody = document.getElementById('candidates-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--txt3);">No candidates found.</td></tr>`;
+    document.getElementById('candidate-count').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td><span style="font-weight:700;color:var(--accent);">#${c.rank}</span></td>
+      <td><span style="font-weight:600;">${c.name || '—'}</span></td>
+      <td style="font-size:12px;color:var(--txt2);">${c.email}</td>
+      <td style="font-size:12px;color:var(--txt3);">${fmtDate(c.submitted_at)}</td>
+      <td style="font-size:12px;color:var(--txt3);">${fmtTime(c.time_taken_sec)}</td>
+      <td><span style="font-weight:700;color:${c.weighted_score>=74?'#34D399':c.weighted_score>=61?'#818CF8':c.weighted_score>=48?'#FCD34D':'#FCA5A5'}">${c.weighted_score}%</span></td>
+      <td><span style="color:${DIM_COLORS['A']}">${c.dim_a}%</span></td>
+      <td><span style="color:${DIM_COLORS['C']}">${c.dim_c}%</span></td>
+      <td>${recBadge(c.recommendation)}</td>
+      <td><button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="openModal(${c.id})">View →</button></td>
+    </tr>
+  `).join('');
+  document.getElementById('candidate-count').textContent = `Showing ${filtered.length} of ${allCandidates.length} candidates`;
+}
+
+// ── Rankings ─────────────────────────────────────────────────────────────────
+function renderRankings() {
+  const list = document.getElementById('rank-list');
+  if (!allCandidates.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No submissions yet.</p></div>';
+    return;
+  }
+
+  const tierColors = { 'Strongly Recommended':'#6366F1', 'Recommended':'#10B981', 'Consider with Caveats':'#F59E0B', 'Not Recommended':'#EF4444' };
+
+  list.innerHTML = allCandidates.map(c => {
+    const col = tierColors[c.recommendation] || '#888';
+    const dimBars = ['A','C','F','D','E','B'].map(k => `
+      <div class="dim-row">
+        <div class="dim-row-label" style="color:${DIM_COLORS[k]}">${DIM_LABELS[k].split(' ')[0]}</div>
+        <div class="dim-track"><div class="dim-fill" style="width:${c['dim_'+k.toLowerCase()]}%;background:${DIM_COLORS[k]}"></div></div>
+        <div class="dim-pct">${c['dim_'+k.toLowerCase()]}%</div>
+      </div>
+    `).join('');
+    return `
+      <div class="rank-card" onclick="openModal(${c.id})">
+        <div class="rank-num" style="background:${col}1A;color:${col}">#${c.rank}</div>
+        <div class="rank-info">
+          <div class="rank-name">${c.name || c.email}</div>
+          <div class="rank-email">${c.email} · <span style="color:${col}">${c.weighted_score}% weighted</span> · ${recBadge(c.recommendation)}</div>
+          <div class="rank-bars">${dimBars}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Best Fits ─────────────────────────────────────────────────────────────────
+function renderBestFits() {
+  const fits = allCandidates.filter(c => c.recommendation === 'Strongly Recommended' || c.recommendation === 'Recommended');
+  const el = document.getElementById('bestfits-list');
+  if (!fits.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No Recommended or Strongly Recommended candidates yet.</p></div>';
+    return;
+  }
+  el.innerHTML = fits.map(c => renderNarrativeCard(c, 'fit')).join('');
+}
+
+// ── Concerns ─────────────────────────────────────────────────────────────────
+function renderConcerns() {
+  const concerns = allCandidates.filter(c => c.recommendation === 'Not Recommended' || c.recommendation === 'Consider with Caveats');
+  const el = document.getElementById('concerns-list');
+  if (!concerns.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>No below-threshold candidates. All candidates meet minimum requirements.</p></div>';
+    return;
+  }
+  el.innerHTML = concerns.map(c => renderNarrativeCard(c, 'concern')).join('');
+}
+
+function renderNarrativeCard(c, type) {
+  const isFit = type === 'fit';
+  const accent = isFit ? '#10B981' : '#EF4444';
+  const flagsHtml = (c.red_flags || []).length ? `
+    <div style="margin:12px 0;">
+      <div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Red Flags</div>
+      ${(c.red_flags||[]).map(f => `<div style="font-size:12px;color:#FCA5A5;padding:6px 10px;background:rgba(239,68,68,0.07);border-radius:6px;margin-bottom:5px;">⚑ ${f}</div>`).join('')}
+    </div>` : '';
+
+  const dims = ['A','C','F','D','E','B'].map(k => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+      <div style="width:110px;font-size:11.5px;color:${DIM_COLORS[k]};flex-shrink:0;">${DIM_LABELS[k]}</div>
+      <div class="bar-track" style="flex:1;"><div class="bar-fill" style="width:${c['dim_'+k.toLowerCase()]}%;background:${DIM_COLORS[k]}"></div></div>
+      <div style="font-size:11.5px;font-weight:600;width:34px;text-align:right;color:${DIM_COLORS[k]}">${c['dim_'+k.toLowerCase()]}%</div>
+    </div>`).join('');
+
+  return `
+    <div class="card mb-20" style="border-left:3px solid ${accent};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--txt);">${c.name || c.email}</div>
+          <div style="font-size:12px;color:var(--txt3);">${c.email} · Rank #${c.rank} · ${c.mbti_type} ${c.mbti_name}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:20px;font-weight:700;color:${c.weighted_score>=74?'#34D399':c.weighted_score>=61?'#818CF8':c.weighted_score>=48?'#FCD34D':'#FCA5A5'}">${c.weighted_score}%</span>
+          ${recBadge(c.recommendation)}
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">${dims}</div>
+      ${flagsHtml}
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Bain Analysis</div>
+        <div class="narrative-box">${c.narrative || 'No narrative generated.'}</div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="openModal(${c.id})" style="font-size:12px;">View Full Profile →</button>
+      </div>
+    </div>`;
+}
+
+// ── Dimension Analysis ────────────────────────────────────────────────────────
+function renderDimensions() {
+  const st = overviewData.dim_stats || {};
+
+  // Stat cards
+  document.getElementById('dim-stat-grid').innerHTML = Object.entries(st).map(([k,v]) => `
+    <div class="dim-stat-card" style="border-left-color:${DIM_COLORS[k]}">
+      <div style="font-size:11px;color:${DIM_COLORS[k]};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">${DIM_LABELS[k]}</div>
+      <div class="val" style="color:${DIM_COLORS[k]}">${v.avg}%</div>
+      <div class="lbl">Cohort Average</div>
+      <div class="sub">Range: ${v.min}% – ${v.max}% · σ: ${v.std}</div>
+    </div>
+  `).join('');
+
+  // Distribution charts for each dim
+  ['a','c','f','d'].forEach(k => {
+    const K = k.toUpperCase();
+    const vals = allCandidates.map(c => c['dim_'+k]);
+    const buckets = Array(10).fill(0);
+    vals.forEach(v => { const b = Math.min(Math.floor(v / 10), 9); buckets[b]++; });
+    const labels = ['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90–100'];
+    makeChart('chart-dim-'+k, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Candidates', data: buckets, backgroundColor: DIM_COLORS[K]+'BB', borderRadius: 4, borderSkipped: false }] },
+      options: { ...CHART_DEFAULTS, plugins: { legend: { display: false } }, scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, ticks: { stepSize: 1 } } } }
+    });
+  });
+
+  // Cohort radar
+  const dims = ['A','B','C','D','E','F'];
+  const avgs = dims.map(k => overviewData.dim_avgs?.[k] ?? 0);
+  makeChart('chart-cohort-radar', {
+    type: 'radar',
+    data: {
+      labels: dims.map(k => DIM_LABELS[k].split(' ')[0]),
+      datasets: [{ label: 'Cohort Avg', data: avgs, borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.15)', pointBackgroundColor: '#6366F1', borderWidth: 2, pointRadius: 4 }]
+    },
+    options: {
+      scales: { r: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.07)' }, ticks: { color: '#4A4A6A', font: { size: 10 }, stepSize: 20 }, pointLabels: { color: '#8888AA', font: { size: 11 } } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ── Cohort Insights ───────────────────────────────────────────────────────────
+function renderCohort() {
+  if (!allCandidates.length) return;
+
+  // Score histogram
+  const buckets = Array(10).fill(0);
+  allCandidates.forEach(c => { const b = Math.min(Math.floor(c.weighted_score / 10), 9); buckets[b]++; });
+  const bucketColors = buckets.map((_, i) => {
+    if (i >= 7) return '#6366F1BB';
+    if (i >= 6) return '#10B981BB';
+    if (i >= 5) return '#F59E0BBB';
+    return '#EF4444BB';
+  });
+  makeChart('chart-score-hist', {
+    type: 'bar',
+    data: {
+      labels: ['0–9%','10–19%','20–29%','30–39%','40–49%','50–59%','60–69%','70–79%','80–89%','90–100%'],
+      datasets: [{ label: 'Candidates', data: buckets, backgroundColor: bucketColors, borderRadius: 4, borderSkipped: false }]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { legend: { display: false } } }
+  });
+
+  // Scatter: Analytical vs Execution
+  const tierColors = { 'Strongly Recommended':'#6366F1', 'Recommended':'#10B981', 'Consider with Caveats':'#F59E0B', 'Not Recommended':'#EF4444' };
+  const datasets = Object.entries(tierColors).map(([rec, color]) => ({
+    label: rec,
+    data: allCandidates.filter(c => c.recommendation === rec).map(c => ({ x: c.dim_a, y: c.dim_c, name: c.name || c.email })),
+    backgroundColor: color + 'AA', borderColor: color, pointRadius: 6,
+  }));
+  makeChart('chart-scatter', {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      plugins: { legend: { labels: { color: '#8888AA', font: { size: 11 } }, position: 'bottom' }, tooltip: { callbacks: { label: ctx => `${ctx.raw.name}: A=${ctx.raw.x}% C=${ctx.raw.y}%` } } },
+      scales: {
+        x: { min: 0, max: 100, title: { display: true, text: 'Analytical Depth (%)', color: '#8888AA', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888AA' } },
+        y: { min: 0, max: 100, title: { display: true, text: 'Execution Drive (%)', color: '#8888AA', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888AA' } }
+      }
+    }
+  });
+
+  // Percentile ladder
+  const ladder = document.getElementById('percentile-ladder');
+  ladder.innerHTML = allCandidates.map((c, i) => {
+    const pctile = Math.round((1 - i / Math.max(allCandidates.length - 1, 1)) * 100);
+    const col = c.weighted_score >= 74 ? '#6366F1' : c.weighted_score >= 61 ? '#10B981' : c.weighted_score >= 48 ? '#F59E0B' : '#EF4444';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;margin-bottom:3px;background:var(--card-hi);">
+      <div style="width:28px;font-size:11px;color:var(--txt3);">#${c.rank}</div>
+      <div style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name || c.email}</div>
+      <div style="font-size:11px;color:var(--txt3);width:36px;">${pctile}th</div>
+      <div style="font-weight:700;font-size:12px;color:${col};width:38px;text-align:right;">${c.weighted_score}%</div>
+    </div>`;
+  }).join('');
+
+  // Summary stats
+  const scores = allCandidates.map(c => c.weighted_score);
+  const mean = scores.reduce((a,b) => a+b, 0) / scores.length;
+  const sorted = [...scores].sort((a,b)=>a-b);
+  const median = sorted.length % 2 === 0 ? (sorted[sorted.length/2-1]+sorted[sorted.length/2])/2 : sorted[Math.floor(sorted.length/2)];
+  const std = Math.sqrt(scores.reduce((a,b)=>a+(b-mean)**2,0)/scores.length);
+
+  document.getElementById('cohort-stats-grid').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      ${[
+        ['Mean Weighted Score', mean.toFixed(1)+'%'],
+        ['Median Score', median.toFixed(1)+'%'],
+        ['Std Deviation', std.toFixed(1)],
+        ['Total Submissions', scores.length],
+        ['Top Score', Math.max(...scores)+'%'],
+        ['Bottom Score', Math.min(...scores)+'%'],
+        ['Above 61% (Rec.)', scores.filter(s=>s>=61).length],
+        ['Below 48% (NR)', scores.filter(s=>s<48).length],
+      ].map(([lbl,val]) => `
+        <div style="background:var(--card-hi);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:11px;color:var(--txt3);margin-bottom:4px;">${lbl}</div>
+          <div style="font-size:18px;font-weight:700;color:var(--accent);">${val}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+async function openModal(id) {
+  const res  = await fetch('/api/admin/candidate/' + id);
+  const c    = await res.json();
+  const overlay = document.getElementById('modal-overlay');
+
+  document.getElementById('modal-name').textContent  = c.name || c.email;
+  document.getElementById('modal-email').textContent = c.email + ' · Submitted ' + fmtDate(c.submitted_at) + ' · ' + fmtTime(c.time_taken_sec);
+
+  const kpis = [
+    { lbl: 'Weighted Score', val: c.weighted_score+'%', col: c.weighted_score>=74?'#34D399':c.weighted_score>=61?'#818CF8':c.weighted_score>=48?'#FCD34D':'#FCA5A5' },
+    { lbl: 'Overall Score',  val: c.overall_score+'%',  col: 'var(--txt)' },
+    { lbl: 'MBTI Type',      val: c.mbti_type+' — '+c.mbti_name, col: 'var(--accent)' },
+    { lbl: 'Recommendation', val: c.recommendation, col: 'var(--txt)' },
+  ];
+  document.getElementById('modal-kpis').innerHTML = kpis.map(k => `
+    <div style="background:var(--card-hi);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+      <div style="font-size:10.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">${k.lbl}</div>
+      <div style="font-size:14px;font-weight:700;color:${k.col};">${k.val}</div>
+    </div>`).join('');
+
+  // Radar chart
+  const dims = ['A','B','C','D','E','F'];
+  const vals = dims.map(k => c['dim_'+k.toLowerCase()]);
+  if (modalRadarChart) modalRadarChart.destroy();
+  const rCtx = document.getElementById('modal-radar');
+  modalRadarChart = new Chart(rCtx, {
+    type: 'radar',
+    data: {
+      labels: dims.map(k => DIM_LABELS[k].split(' ')[0]),
+      datasets: [{ label: c.name||c.email, data: vals, borderColor: '#6366F1', backgroundColor: 'rgba(99,102,241,0.15)', pointBackgroundColor: dims.map(k => DIM_COLORS[k]), borderWidth: 2, pointRadius: 5 }]
+    },
+    options: {
+      scales: { r: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.07)' }, ticks: { display: false }, pointLabels: { color: '#8888AA', font: { size: 10 } } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // Dim bars
+  document.getElementById('modal-dims').innerHTML = dims.map(k => `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="color:${DIM_COLORS[k]};font-weight:600;">${DIM_LABELS[k]}</span>
+        <span style="color:${DIM_COLORS[k]};font-weight:700;">${c['dim_'+k.toLowerCase()]}%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${c['dim_'+k.toLowerCase()]}%;background:${DIM_COLORS[k]}"></div></div>
+    </div>`).join('');
+
+  // Red flags
+  const flags = c.red_flags || [];
+  document.getElementById('modal-flags').innerHTML = flags.length ? `
+    <div style="font-size:11px;font-weight:600;color:var(--danger);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Red Flags</div>
+    ${flags.map(f=>`<div style="font-size:12px;color:#FCA5A5;padding:6px 10px;background:rgba(239,68,68,0.07);border-radius:6px;margin-bottom:4px;">⚑ ${f}</div>`).join('')}` : '';
+
+  document.getElementById('modal-narrative').textContent = c.narrative || 'No narrative generated.';
+  overlay.classList.add('open');
+}
+
+function closeModal(e) { if (e.target.id === 'modal-overlay') closeModalBtn(); }
+function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalBtn(); });
+loadAll();
+</script>
+</body>
+</html>

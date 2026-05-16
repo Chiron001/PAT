@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIG Living — Business Analyst Assessment</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #07070E;
+  --surface:    #0D0D1A;
+  --card:       #11111F;
+  --card-hi:    #171728;
+  --border:     rgba(255,255,255,0.07);
+  --border-sel: rgba(99,102,241,0.55);
+  --primary:    #6366F1;
+  --primary-dk: #4F51C7;
+  --primary-lt: rgba(99,102,241,0.12);
+  --primary-gl: rgba(99,102,241,0.22);
+  --accent:     #818CF8;
+  --txt:        #E2E2F0;
+  --txt2:       #8888AA;
+  --txt3:       #4A4A6A;
+  --success:    #10B981;
+  --warn:       #F59E0B;
+  --danger:     #EF4444;
+  --radius:     14px;
+  --radius-sm:  9px;
+  --font:       -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 60px;
+  line-height: 1.5;
+}
+
+/* Ambient glow */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99,102,241,0.12), transparent);
+  pointer-events: none; z-index: 0;
+}
+
+.wrap {
+  width: 100%; max-width: 660px;
+  position: relative; z-index: 1;
+}
+
+/* ── Header bar ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 28px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: white; letter-spacing: -0.5px;
+}
+.logo-text { font-size: 14px; font-weight: 600; color: var(--txt); }
+.logo-sub  { font-size: 11px; color: var(--txt2); margin-top: 1px; }
+
+/* ── Screens ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin-bottom: 14px;
+}
+.card-hi { background: var(--card-hi); }
+
+/* ── Intro Screen ── */
+.intro-hero {
+  text-align: center;
+  padding: 36px 0 28px;
+}
+.intro-icon {
+  width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 20px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25));
+  border: 1px solid rgba(99,102,241,0.3);
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.intro-title {
+  font-size: 24px; font-weight: 700; color: var(--txt);
+  letter-spacing: -0.5px; margin-bottom: 6px;
+}
+.intro-title span {
+  background: linear-gradient(90deg, #818CF8, #6366F1);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.intro-sub { font-size: 14px; color: var(--txt2); max-width: 420px; margin: 0 auto; }
+
+.meta-grid {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 10px;
+  margin: 22px 0;
+}
+.meta-tile {
+  background: var(--card-hi); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 10px; text-align: center;
+}
+.meta-tile .val { font-size: 20px; font-weight: 700; color: var(--accent); }
+.meta-tile .lbl { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+
+.notice {
+  background: rgba(99,102,241,0.07);
+  border: 1px solid rgba(99,102,241,0.18);
+  border-radius: var(--radius-sm);
+  padding: 13px 16px; font-size: 12.5px; color: var(--txt2);
+  line-height: 1.6; margin-bottom: 20px;
+}
+.notice strong { color: var(--accent); }
+
+.dim-list { display: flex; flex-direction: column; gap: 9px; }
+.dim-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--txt2);
+}
+.dim-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.dim-row strong { color: var(--txt); font-weight: 500; }
+
+/* ── Identity Screen ── */
+.step-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--primary); background: var(--primary-lt); border-radius: 20px;
+  padding: 4px 12px; margin-bottom: 18px;
+}
+.form-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.form-sub   { font-size: 13px; color: var(--txt2); margin-bottom: 24px; }
+
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--txt2); margin-bottom: 7px; letter-spacing: 0.04em; text-transform: uppercase; }
+.field input {
+  width: 100%; padding: 12px 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--txt); font-size: 14px; font-family: var(--font);
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input::placeholder { color: var(--txt3); }
+.field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-gl);
+}
+.field-hint { font-size: 11.5px; color: var(--txt3); margin-top: 5px; }
+
+/* ── Test Screen ── */
+.test-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.q-counter { font-size: 13px; color: var(--txt2); }
+.q-counter span { color: var(--txt); font-weight: 600; }
+.timer-display {
+  font-size: 12px; font-weight: 600; color: var(--txt3);
+  font-variant-numeric: tabular-nums;
+  background: var(--card-hi); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 20px;
+}
+
+/* Progress bar */
+.prog-track {
+  height: 4px; background: var(--border);
+  border-radius: 4px; margin-bottom: 5px; overflow: hidden;
+}
+.prog-fill {
+  height: 4px; border-radius: 4px;
+  background: linear-gradient(90deg, #6366F1, #8B5CF6);
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
+.prog-label { font-size: 11px; color: var(--txt3); margin-bottom: 16px; }
+
+/* Section badge */
+.sect-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 11px; border-radius: 20px; margin-bottom: 14px;
+  border: 1px solid;
+}
+
+/* Question card */
+.q-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 22px 24px; margin-bottom: 12px;
+}
+.q-text {
+  font-size: 15px; font-weight: 500; line-height: 1.65; color: var(--txt);
+  margin-bottom: 18px;
+}
+.q-num { color: var(--txt3); font-weight: 400; margin-right: 4px; }
+
+/* Options */
+.options { display: flex; flex-direction: column; gap: 9px; }
+.opt-label {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer;
+  font-size: 13.5px; color: var(--txt2); line-height: 1.55;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.opt-label:hover {
+  border-color: rgba(99,102,241,0.3);
+  background: rgba(99,102,241,0.05);
+  color: var(--txt);
+}
+.opt-label.selected {
+  border-color: var(--border-sel);
+  background: rgba(99,102,241,0.1);
+  color: var(--txt);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.2), inset 0 0 0 1px rgba(99,102,241,0.1);
+}
+.opt-label.selected .opt-radio-ring { border-color: var(--primary); }
+.opt-label.selected .opt-radio-dot  { opacity: 1; transform: scale(1); }
+
+.opt-radio {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.opt-radio-ring {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--border);
+  transition: border-color 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.opt-radio-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--primary); opacity: 0;
+  transform: scale(0.5); transition: opacity 0.15s, transform 0.15s;
+}
+.opt-label input[type=radio] { display: none; }
+
+/* Nav row */
+.nav-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 16px; gap: 10px;
+}
+.warn-msg {
+  font-size: 12px; color: var(--danger);
+  margin-top: 10px; display: none;
+  padding: 8px 12px; background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-sm);
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 22px; border-radius: var(--radius-sm);
+  font-size: 13.5px; font-weight: 600; border: none; cursor: pointer;
+  font-family: var(--font); transition: all 0.15s; text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--primary); color: white;
+}
+.btn-primary:hover { background: var(--primary-dk); box-shadow: 0 4px 16px rgba(99,102,241,0.35); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent; color: var(--txt2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--card-hi); color: var(--txt); }
+
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── Thank you screen ── */
+.ty-wrap { text-align: center; padding: 20px 0; }
+.ty-icon {
+  width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 24px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1));
+  border: 1px solid rgba(16,185,129,0.3);
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+}
+.ty-title { font-size: 26px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.5px; }
+.ty-sub   { font-size: 14px; color: var(--txt2); max-width: 380px; margin: 0 auto 28px; line-height: 1.7; }
+
+.ty-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+  color: var(--success); border-radius: 20px; padding: 5px 14px;
+  font-size: 12px; font-weight: 600; margin-bottom: 28px;
+}
+
+.ty-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  text-align: left; margin-bottom: 24px;
+}
+.ty-info-tile {
+  background: var(--card-hi); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+}
+.ty-info-tile .ti-lbl { font-size: 11px; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.ty-info-tile .ti-val { font-size: 14px; font-weight: 600; color: var(--txt); }
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ── Loading overlay ── */
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(7,7,14,0.85);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; backdrop-filter: blur(4px);
+}
+.loading-overlay.active { display: flex; }
+.loading-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px 40px; text-align: center;
+}
+.spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite; margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--txt2); }
+
+/* ── Arrows (CSS only, no icon library) ── */
+.arr { display: inline-block; }
+.arr-r::after { content: ' →'; }
+.arr-l::before { content: '← '; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .card { padding: 18px 16px; }
+  .meta-grid { grid-template-columns: repeat(2,1fr); }
+  .ty-info-grid { grid-template-columns: 1fr; }
+  .intro-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">FL</div>
+      <div>
+        <div class="logo-text">FIG Living</div>
+        <div class="logo-sub">Business Analyst Assessment</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--txt3)">Bain Methodology</div>
+  </div>
+
+  <!-- ── Screen 1: Intro ── -->
+  <div id="s-intro" class="screen active">
+    <div class="card">
+      <div class="intro-hero">
+        <div class="intro-icon">⚡</div>
+        <div class="intro-title">P.A.T — <span>Personality Assessment Tool</span></div>
+        <div class="intro-sub">Designed to identify how you think, decide, and work — across the six dimensions that define success in FIG Living's Business Analyst role.</div>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-tile"><div class="val">60</div><div class="lbl">Questions</div></div>
+        <div class="meta-tile"><div class="val">30–40</div><div class="lbl">Minutes</div></div>
+        <div class="meta-tile"><div class="val">6</div><div class="lbl">Dimensions</div></div>
+        <div class="meta-tile"><div class="val">14</div><div class="lbl">Profiles</div></div>
+      </div>
+
+      <div class="notice">
+        <strong>No right or wrong answers.</strong> Select the option that most naturally reflects how you think and work — not what you believe is "ideal." Your responses are confidential and used solely for evaluation purposes.
+      </div>
+
+      <div style="font-size:12px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px;">The six dimensions we measure</div>
+      <div class="dim-list">
+        <div class="dim-row"><div class="dim-dot" style="background:#6366F1"></div><strong>Analytical Depth</strong> — How you process data and draw conclusions</div>
+        <div class="dim-row"><div class="dim-dot" style="background:#10B981"></div><strong>Aesthetic Sensibility</strong> — How you relate to design, brand, and visual thinking</div>
+        <div class="dim-row"><div class="dim-dot" style="background:#F59E0B"></div><strong>Execution Drive</strong> — How you move from insight to action</div>
+        <div class="dim-row"><div class="dim-dot" style="background:#8B5CF6"></div><strong>Ambiguity Tolerance</strong> — How you operate with incomplete information</div>
+        <div class="dim-row"><div class="dim-dot" style="background:#EC4899"></div><strong>Stakeholder Orientation</strong> — How you work with and influence people</div>
+        <div class="dim-row"><div class="dim-dot" style="background:#06B6D4"></div><strong>Growth Mindset</strong> — How you learn, adapt, and handle failure</div>
+      </div>
+
+      <div style="margin-top:28px;">
+        <button class="btn btn-primary btn-full" onclick="goToIdentity()">
+          Begin Assessment <span class="arr arr-r"></span>
+        </button>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:11.5px;color:var(--txt3);margin-top:8px;">
+      FIG Living · Talent Assessment · Powered by Bain Methodology
+    </div>
+  </div>
+
+  <!-- ── Screen 2: Identity ── -->
+  <div id="s-identity" class="screen">
+    <div class="card">
+      <div class="step-label">Step 1 of 2 — Identification</div>
+      <div class="form-title">Tell us who you are</div>
+      <div class="form-sub">Your email is your unique identifier for this assessment. Please use the same email you applied with.</div>
+
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Priya Sharma" autocomplete="name" />
+      </div>
+      <div class="field">
+        <label>Email Address <span style="color:var(--danger)">*</span></label>
+        <input type="email" id="inp-email" placeholder="your@email.com" autocomplete="email" />
+        <div class="field-hint">This is your unique identifier. Each email can submit once.</div>
+      </div>
+
+      <div id="id-error" class="warn-msg" style="display:none;margin-top:0;margin-bottom:16px;"></div>
+
+      <button class="btn btn-primary btn-full" onclick="startTest()">
+        Start Assessment <span class="arr arr-r"></span>
+      </button>
+      <div style="text-align:center;margin-top:14px;">
+        <button class="btn btn-ghost" onclick="showScreen('s-intro')" style="font-size:12px;padding:8px 16px;">
+          <span class="arr arr-l"></span> Back
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Test ── -->
+  <div id="s-test" class="screen">
+    <div class="test-header">
+      <div class="q-counter">Question <span id="q-num">1</span> <span style="color:var(--txt3)">/ 60</span></div>
+      <div class="timer-display" id="timer-display">00:00</div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-label" id="prog-label">0% complete</div>
+
+    <div id="sect-badge-wrap"></div>
+    <div id="q-container"></div>
+    <div id="warn-msg" class="warn-msg">Please select an answer before continuing.</div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" id="btn-prev" onclick="prevQ()" style="display:none;">
+        <span class="arr arr-l"></span> Back
+      </button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextQ()" style="margin-left:auto;">
+        Next <span class="arr arr-r"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: Thank You ── -->
+  <div id="s-thankyou" class="screen">
+    <div class="card">
+      <div class="ty-wrap">
+        <div class="ty-icon">✓</div>
+        <div class="ty-tag">Assessment Submitted Successfully</div>
+        <div class="ty-title">Thank you for your time.</div>
+        <div class="ty-sub">
+          Your responses have been recorded and will be reviewed by the FIG Living talent team. We appreciate the care and thought you put into this assessment.
+        </div>
+
+        <div class="ty-info-grid">
+          <div class="ty-info-tile">
+            <div class="ti-lbl">Submitted As</div>
+            <div class="ti-val" id="ty-name">—</div>
+          </div>
+          <div class="ty-info-tile">
+            <div class="ti-lbl">Email</div>
+            <div class="ti-val" id="ty-email" style="font-size:12px;word-break:break-all;">—</div>
+          </div>
+          <div class="ty-info-tile">
+            <div class="ti-lbl">Time Taken</div>
+            <div class="ti-val" id="ty-time">—</div>
+          </div>
+          <div class="ty-info-tile">
+            <div class="ti-lbl">Questions Answered</div>
+            <div class="ti-val">60 / 60</div>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <div style="font-size:13px;color:var(--txt2);line-height:1.8;">
+          Our team will be in touch with next steps via the email you provided.<br>
+          If you have questions, reach out to <strong style="color:var(--accent)">careers@figliving.com</strong>
+        </div>
+
+        <div style="margin-top:28px;padding:16px;background:var(--card-hi);border:1px solid var(--border);border-radius:var(--radius-sm);">
+          <div style="font-size:12px;color:var(--txt3);margin-bottom:4px;">ABOUT FIG LIVING</div>
+          <div style="font-size:13px;color:var(--txt2);line-height:1.7;">
+            FIG Living is a fast-scaling D2C lighting brand at the intersection of design, data, and commerce — building the future of premium lighting in India.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-text">Submitting your assessment…</div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  {s:"Analytical depth",d:"A",q:"You are handed a month of FIG Living's sales data across Amazon, Shopify, and B2B channels. Your first instinct is to:",opts:[["Build a unified pivot table and look for patterns across all three channels before drawing any conclusions",4],["Focus on whichever channel drove the most revenue last month and dig deep into that",2],["Ask the team what they already believe is happening, then verify or refute it with data",3],["Quickly calculate top-line totals and flag anything that looks obviously off",1]]},
+  {s:"Analytical depth",d:"A",q:"A metric you track shows a 22% drop in conversion rate on the FIG Living website over 2 weeks. You:",opts:[["Segment by device, traffic source, landing page, and product category before saying anything",4],["Check if there was a price change or campaign launch first — those are the usual suspects",3],["Alert the team immediately so they can make quick decisions while you dig deeper",2],["Run a quick funnel analysis to see exactly where users are dropping off",4]]},
+  {s:"Analytical depth",d:"A",q:"When working with a large dataset, which statement best describes you?",opts:[["I naturally build validation checks and sanity-test my numbers before sharing",4],["I focus on getting directionally correct insights fast rather than perfect numbers",2],["I enjoy the exploration phase but find detailed cleaning and structuring tedious",1],["I always document my methodology so anyone can reproduce my analysis",3]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living wants to forecast next quarter's D2C revenue. You would start by:",opts:[["Building a bottom-up model using SKU-level sell-through rates and traffic data",4],["Applying a growth percentage to last quarter's actuals based on known seasonality",2],["Researching how comparable D2C home décor brands forecast and adapting that approach",3],["Asking leadership what target they have in mind and working backwards",1]]},
+  {s:"Analytical depth",d:"A",q:"You notice two analyses from two team members give conflicting conclusions on the same data. You:",opts:[["Reconcile both analyses yourself by tracing the logic and assumptions in each",4],["Set up a quick meeting to understand each person's reasoning before deciding",3],["Go with the one that uses a more rigorous methodology",4],["Present both findings to the founder and let leadership decide",1]]},
+  {s:"Analytical depth",d:"A",q:"How do you typically handle uncertainty in your data?",opts:[["I quantify the uncertainty and include confidence ranges in my output",4],["I flag the gaps clearly and give my best estimate with caveats",3],["I gather more data before presenting anything incomplete",3],["I present what I have and note that assumptions may need revisiting",2]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living is considering entering a new city for B2B sales. What analysis would you prioritize first?",opts:[["Market sizing: number of hotels, restaurants, and premium residences in the city",4],["Competitor mapping: which lighting brands are already active in that market",3],["Internal readiness: can we deliver and service orders there reliably",2],["ROI projection: what revenue and margin could we reasonably expect in year one",4]]},
+  {s:"Analytical depth",d:"A",q:"You are presenting analysis to FIG Living's founder. You realize mid-slide that one of your numbers may be slightly off. You:",opts:[["Pause, acknowledge it, and offer to revert with corrected data before conclusions are drawn",4],["Quickly calculate the likely impact and note it as a minor caveat while continuing",3],["Correct it on the spot if possible and explain what changed",3],["Continue the presentation and fix it quietly in the follow-up deck",1]]},
+  {s:"Analytical depth",d:"A",q:"Which best describes how you feel about building Excel or Google Sheets models?",opts:[["I genuinely enjoy it — structuring logic into a model is satisfying",4],["I can do it but prefer handing off the model-building to someone else once I define the structure",2],["I build functional models but rarely obsess over making them clean or scalable",2],["I build models that others can easily understand and update without my help",4]]},
+  {s:"Analytical depth",d:"A",q:"FIG Living's return rate increases by 3 percentage points in Q3. Your instinct is:",opts:[["This could be product quality, delivery damage, customer expectation mismatch, or seasonal — let me investigate all four",4],["Check customer feedback and support tickets first — the reason is usually hiding there",3],["Compare against industry benchmarks before deciding if this is actually a problem",3],["Map returns by SKU and channel to find the highest-concentration issue",4]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You are reviewing the copy for a new FIG Living product page. The data says conversions are low but the description is factually accurate. You:",opts:[["Rewrite the copy to be more emotionally resonant — facts don't sell, feelings do",4],["A/B test two versions: one functional, one emotional — let data decide",3],["Flag it to the marketing team and share what the data shows",2],["Suggest adding lifestyle imagery to complement the existing copy",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living is launching a new collection called Fold Series. You are asked to contribute to the naming of product variants. You:",opts:[["Research the visual and cultural references of 'fold' and propose names that carry that metaphor",4],["Suggest names that are easy to remember and search for",2],["Recommend naming conventions that are consistent with the existing product line",3],["Leave naming to the design/marketing team — my strength is in the numbers",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"When you walk into a beautifully designed room, what is your typical response?",opts:[["I immediately start noticing what makes it work — materials, proportions, light quality",4],["I notice that it feels good but couldn't immediately tell you why",2],["I appreciate it aesthetically but my mind quickly moves to other things",1],["I notice specific elements I'd want to replicate or avoid if I were designing a space",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living is choosing between two presentation deck templates — one is clean and minimalist, the other is dense with data charts. You are presenting to an investor. You choose:",opts:[["The minimalist one — clarity and elegance signal brand confidence",4],["The data-heavy one — investors need proof points, not aesthetics",2],["A hybrid: lead with a clean narrative, then support with data appendix",4],["Whichever one the founder prefers",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You are asked to review a proposed Instagram campaign for FIG Living. The creative looks beautiful but the targeting seems off. You:",opts:[["Flag both: the creative is strong but targeting will determine whether it works",4],["Focus on the targeting issue — that's what affects ROI",3],["Appreciate the creative quality and trust the marketing team knows their audience",1],["Ask to see the brief to understand whether the creative was meant for conversion or awareness",4]]},
+  {s:"Aesthetic sensibility",d:"B",q:"How important is it to you that the reports and dashboards you build look good?",opts:[["Very important — a well-designed report gets read and acted on. Ugly ones get ignored",4],["Somewhat important — functional first, aesthetics if time permits",2],["I'd rather spend that time on improving the analysis itself",1],["Important when presenting to external stakeholders, less so for internal use",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"FIG Living's brand identity is described as 'warm Scandinavian minimalism.' If you were briefing a junior analyst on what that means for how they present data, you would say:",opts:[["Less is more — show only what is necessary, use warm neutral tones, and leave white space",4],["Keep it professional and clean — nothing flashy",2],["Match the deck palette to FIG's brand colors",3],["I'd let the design team handle the visual brief",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"A new competitor has launched a premium lighting brand with stronger D2C aesthetics than FIG Living. Your reaction as a business analyst is:",opts:[["Conduct a full competitor audit: product range, price points, visual positioning, and customer sentiment",4],["Flag it to the team with a summary of what they're doing differently",3],["Track their pricing and promotions over the next quarter",2],["Note it and continue focusing on FIG Living's current priorities",1]]},
+  {s:"Aesthetic sensibility",d:"B",q:"Which of these projects would excite you most at FIG Living?",opts:[["Redesigning the product detail page to improve conversion using UX and copy insights",4],["Building a gross margin model across all SKUs to identify pricing opportunities",3],["Creating a demand forecasting tool to reduce stockouts",2],["Mapping the B2B sales pipeline and building a lead scoring model",3]]},
+  {s:"Aesthetic sensibility",d:"B",q:"You receive a brief to create a one-page report for FIG Living's board on business performance. You:",opts:[["Design it so every number tells a story and the visual hierarchy guides the reader's eye",4],["Include all key metrics with clear labels — completeness over design",2],["Use a standard business report template",1],["Write the content first, then think about layout and presentation",3]]},
+  {s:"Execution drive",d:"C",q:"FIG Living's founder asks you to have a market sizing analysis ready by tomorrow morning. It's 5 PM. You:",opts:[["Work through the evening — I'd rather deliver quality on time than ask for an extension",4],["Start immediately, identify the 20% of work that will give 80% of the answer, and deliver that",4],["Clarify what level of depth is actually needed before committing",3],["Scope it down, deliver a solid framework tonight, and offer to fill in tomorrow",3]]},
+  {s:"Execution drive",d:"C",q:"You have three urgent tasks from three different stakeholders all due on the same day. You:",opts:[["Prioritize by business impact and communicate clearly to all three about sequencing",4],["Ask each stakeholder to clarify urgency so I can sequence properly",3],["Handle the most complex one first to get it out of my head",2],["Do all three simultaneously and manage my time across them",2]]},
+  {s:"Execution drive",d:"C",q:"Which statement most accurately describes your relationship with deadlines?",opts:[["I treat deadlines as commitments — I will always find a way to deliver or flag early if I can't",4],["I work best under pressure — deadlines sharpen my focus",3],["I prefer to work steadily and not rush the quality of my output",2],["I communicate proactively if a deadline is at risk and always offer an updated timeline",4]]},
+  {s:"Execution drive",d:"C",q:"After delivering an analysis, you find a significant error in your model. You:",opts:[["Immediately inform the stakeholder, share the corrected version, and explain the impact of the change",4],["Fix it and send the updated version with a brief note about the correction",3],["Assess whether the error changes the conclusion before deciding to escalate",3],["Quietly update it and hope the error didn't affect any decisions yet",1]]},
+  {s:"Execution drive",d:"C",q:"You are building a monthly performance dashboard for FIG Living. Halfway through, you realize the data source is messy and will take 3 more days to clean. Deadline is tomorrow. You:",opts:[["Use cleaned data for the key metrics and flag that full data is pending — deliver something useful now",4],["Push for the deadline extension — better to deliver right than fast",2],["Build the dashboard structure and populate it with available data, noting gaps",4],["Escalate to your manager and ask for a decision on trade-offs",3]]},
+  {s:"Execution drive",d:"C",q:"How do you feel about starting tasks before you have all the information?",opts:[["Comfortable — I structure what I know, flag what I don't, and get started",4],["Somewhat comfortable — I need at least a clear output definition before I start",3],["Uncomfortable — I prefer clarity before investing effort",1],["Very comfortable — starting creates momentum and information gaps often fill themselves",4]]},
+  {s:"Execution drive",d:"C",q:"You finish your analysis two hours early. You:",opts:[["Use the time to stress-test your conclusions and look for holes in your logic",4],["Start on the next item in my queue",3],["Document your methodology clearly so others can build on it",3],["Take a break — deep work is tiring and rest improves future performance",2]]},
+  {s:"Execution drive",d:"C",q:"FIG Living is moving fast. New initiatives launch every 2-3 weeks. How do you feel about constantly shifting priorities?",opts:[["Energized — variety keeps me sharp and I adapt quickly",4],["Manageable — as long as there's clear communication and updated priorities",3],["Challenging — I work best when I can go deep on one thing",1],["Fine — I've learned to maintain parallel workstreams",3]]},
+  {s:"Execution drive",d:"C",q:"You've been asked to own a new project that is outside your current skillset. You:",opts:[["Accept it — I'll learn what I need to while doing it",4],["Accept it but carve out time upfront to develop the core skill I'm missing",4],["Ask if there's someone more suited and offer to support instead",2],["Accept it but set clear expectations about the learning curve",3]]},
+  {s:"Execution drive",d:"C",q:"How would your closest friend describe the way you work?",opts:[["Reliable and thorough — they always know I'll get it done and done well",4],["Creative and fast — I move quickly and figure things out along the way",3],["Thoughtful and careful — I take my time but the output is solid",2],["Flexible and collaborative — I work well with others and adjust to the team's rhythm",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"FIG Living has no formal job description for the BA role yet. You are the first hire. You feel:",opts:[["Excited — I get to define what good looks like",4],["Cautiously optimistic — I'll make it work but would prefer clearer expectations",3],["Somewhat anxious — I want to be evaluated against something fair",2],["Neutral — the work will define the role regardless of what's written",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You are three weeks into your role and still don't have full data access. You:",opts:[["Work with what I have, document what I need, and escalate formally if the gap is blocking key work",4],["Keep asking every few days until I get access",3],["Find alternative data sources or proxies in the meantime",4],["Wait — I don't want to overstep by going around the process",1]]},
+  {s:"Ambiguity tolerance",d:"D",q:"The founder gives you a brief: 'I want to understand our customer.' No further guidance. You:",opts:[["Ask three clarifying questions, then structure a customer insight framework and present it for alignment",4],["Start exploring available data and customer feedback and return with a hypothesis",4],["Request more context — I want to be sure I'm solving the right problem",2],["Design a full customer research plan and present it for approval before starting",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"Which environment would you thrive in most?",opts:[["A fast startup where roles are fluid and I create my own structure",4],["A structured team where my responsibilities are clearly defined",1],["A hybrid — a growing company that's adding structure as it scales",3],["A company where I have clear KPIs but latitude in how I achieve them",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"FIG Living has conflicting data from two sources on the same metric. No one knows which is right. You:",opts:[["Triangulate using a third reference, document the discrepancy, and use the more conservative figure",4],["Escalate it — I won't present analysis built on data I don't trust",2],["Use the source that is more frequently used internally and note the issue",3],["Build parallel scenarios using both figures and show sensitivity",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You're asked to present a recommendation to leadership but the evidence is 60/40, not conclusive. You:",opts:[["Present the recommendation clearly with the supporting evidence and quantify the risk of being wrong",4],["Present both sides and let leadership decide",2],["Gather more data before I'm willing to take a position",2],["Frame it as a hypothesis to be tested rather than a firm recommendation",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"A project you've been working on for 3 weeks is suddenly deprioritized. You:",opts:[["Document what I've done, archive it clearly, and redirect my energy",4],["Feel frustrated but move on quickly",3],["Ask for context on the reprioritization decision",3],["Use the freed time proactively to pick up something else useful",4]]},
+  {s:"Ambiguity tolerance",d:"D",q:"You are given access to FIG Living's full data stack with no specific task. What do you do?",opts:[["Explore freely and build a catalog of interesting insights and anomalies",4],["Ask what the team most needs answered right now",3],["Start with the highest-impact area (e.g. revenue or margins) and build from there",4],["Set up a data quality audit before diving into analysis",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"How do you handle situations where the 'right answer' doesn't exist?",opts:[["I'm comfortable taking a reasoned position and defending it with logic",4],["I prefer to reframe the question until a clearer answer emerges",3],["I feel uncomfortable — I need more structure to work effectively",1],["I document the tradeoffs and present options rather than a single answer",3]]},
+  {s:"Ambiguity tolerance",d:"D",q:"Your manager is often unavailable and you frequently need to make judgment calls. You feel:",opts:[["Empowered — autonomy is how I do my best work",4],["Fine — I'll make the call and flag it later",3],["Nervous — I want validation before I act on important decisions",1],["Comfortable — but I document my reasoning carefully",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"FIG Living's marketing team disagrees with your analysis conclusion. You:",opts:[["Hear them out, understand their objection, and either update your view or explain why you stand by it",4],["Stand firm if I'm confident in the data — emotions shouldn't override evidence",2],["Explore whether we're answering the same question before deciding who's right",4],["Find a way to present both perspectives to the founder",2]]},
+  {s:"Stakeholder orientation",d:"E",q:"You need data from the operations team, but they're stretched thin. You:",opts:[["Understand their capacity constraints, prioritize what I truly need, and make it easy for them to help",4],["Escalate to my manager if I can't get what I need within a week",2],["Find workarounds to reduce my dependency on them",3],["Schedule a quick call to explain why this matters and what's at stake",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"The founder asks you for a quick verbal update on category performance. You:",opts:[["Give a crisp two-sentence summary with the most important number and a recommendation",4],["Walk through the full analysis — I want them to see the nuance",2],["Ask what decision they're trying to make so I give them exactly what they need",4],["Share the top three highlights and offer to go deeper on any of them",3]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you prefer to communicate your analysis findings?",opts:[["Written first — I craft the narrative carefully before any verbal walkthrough",3],["Visual — I lead with charts and let the data speak",3],["Verbal — I explain the story first, then point to the data",2],["Adaptive — I match the format to what the stakeholder needs",4]]},
+  {s:"Stakeholder orientation",d:"E",q:"You notice that a senior team member is making a business decision based on an incorrect assumption. You:",opts:[["Respectfully raise it privately with clear evidence — being right isn't worth burning a relationship",4],["Raise it in the meeting — incorrect decisions hurt the business regardless of who's in the room",3],["Prepare a brief note with the correct data and share it after the meeting",3],["Wait to see if others catch it first",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you build trust with people you work with for the first time?",opts:[["By delivering on small commitments before asking for anything big",4],["By being transparent about my thinking and inviting pushback",3],["By understanding what they care about and making my work relevant to their goals",4],["By being responsive, reliable, and easy to work with",3]]},
+  {s:"Stakeholder orientation",d:"E",q:"FIG Living has a cross-functional meeting where tensions are high. Your analysis is at the center of the debate. You:",opts:[["Stay calm, present the data clearly, and help the team focus on the question rather than the conflict",4],["Let the leaders work it out — it's not my role to mediate",1],["Offer to walk through the methodology again so everyone is working from the same baseline",4],["Stay quiet and answer only direct questions",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"You've built a great dashboard but no one is using it. You:",opts:[["Do a discovery conversation with users to understand the gap between what I built and what they need",4],["Redesign it based on what I think they actually want",2],["Schedule a walkthrough session to onboard people to the tool",3],["Escalate — if leadership doesn't prioritize data-driven decisions, I can't force it",1]]},
+  {s:"Stakeholder orientation",d:"E",q:"The founder asks you to validate a decision they've already made. You find the data doesn't support it. You:",opts:[["Share the data honestly and let them decide — my job is to inform, not please",4],["Soften the delivery but be clear about what the data shows",3],["Ask what they're trying to achieve — there may be a better path the data would support",4],["Present the data without a recommendation and let them draw conclusions",2]]},
+  {s:"Stakeholder orientation",d:"E",q:"How do you feel about presenting to leadership?",opts:[["Comfortable — I enjoy translating complexity into clarity for decision-makers",4],["Slightly nervous but I prepare thoroughly and usually do well",3],["I prefer written communication over live presentations",1],["It depends on how well I know the material — confidence drives comfort",3]]},
+  {s:"Growth mindset",d:"F",q:"You make a significant analytical error that leads to a wrong business decision. You:",opts:[["Own it fully, understand what went wrong, fix the output, and put a check in place to prevent recurrence",4],["Apologize sincerely and fix it as fast as possible",3],["Feel bad about it for a while but eventually move on",2],["Analyze why the error happened before deciding how to communicate it",3]]},
+  {s:"Growth mindset",d:"F",q:"You receive critical feedback on a report you put significant effort into. You:",opts:[["Listen carefully, ask clarifying questions, and revise with the feedback in mind",4],["Defend the parts I feel are correct and accept feedback on the parts I agree were weak",2],["Feel disappointed but use it as a learning moment",3],["Appreciate it — I actively want to know where I fell short",4]]},
+  {s:"Growth mindset",d:"F",q:"FIG Living is using tools you've never encountered before (Shopify analytics, Delhivery data, GoKwik). You:",opts:[["Figure it out independently — documentation and trial and error are my friends",4],["Ask a colleague for a quick orientation and then take it from there",3],["Request formal training or resources before using them in a live project",2],["Start exploring immediately and ask targeted questions as I go",4]]},
+  {s:"Growth mindset",d:"F",q:"Which of these statements best reflects your approach to learning?",opts:[["I seek out hard projects because that's where the learning happens",4],["I learn by doing — formal study is less effective than real problems",4],["I prefer structured learning first, then application",2],["I learn best from feedback — other people's perspective accelerates my growth",3]]},
+  {s:"Growth mindset",d:"F",q:"You're working in an area (e.g. D2C e-commerce) where you have limited prior experience. You:",opts:[["Immerse myself — read obsessively, talk to experts, and learn on the job",4],["Focus on applying transferable analytical skills and build domain knowledge gradually",3],["Feel challenged but motivated — I know I'll get there",3],["Prefer to work in areas where I already have domain context",1]]},
+  {s:"Growth mindset",d:"F",q:"How do you respond when a project fails to deliver the expected outcome?",opts:[["I run a retrospective — what did we assume, what did we miss, what would I do differently",4],["I feel frustrated but move forward — dwelling doesn't help",2],["I identify the root cause and ensure it doesn't happen again on my watch",4],["I take stock of my contribution and try to understand what I could have done differently",3]]},
+  {s:"Growth mindset",d:"F",q:"You are asked to mentor a junior analyst. You:",opts:[["Genuinely enjoy it — teaching makes me sharper and I care about people growing",4],["Do it if asked but it's not something I seek out",2],["Prefer to focus on my own work — mentoring is a time cost",1],["See it as part of the job and approach it with care and structure",3]]},
+  {s:"Growth mindset",d:"F",q:"What does 'career growth' mean to you?",opts:[["Increasing scope, impact, and autonomy — not just titles",4],["Building deep expertise in a domain I'm passionate about",3],["Financial progression and recognition for results",2],["Being given harder problems over time",4]]},
+  {s:"Growth mindset",d:"F",q:"FIG Living is a high-growth startup. Roles will evolve. How do you feel about that?",opts:[["Excited — I want my role to grow with the company",4],["Comfortable as long as growth is recognized and rewarded",3],["Somewhat uncertain — I prefer clarity on scope",1],["Ready — I've sought this kind of environment deliberately",4]]},
+  {s:"Growth mindset",d:"F",q:"Six months in, you feel you're not being stretched enough in your role. You:",opts:[["Proactively propose new projects or expanded scope to my manager",4],["Have an honest conversation about my ambitions and what it would take to grow",4],["Wait to see if opportunities arise naturally",1],["Look for ways to stretch within my current scope before escalating",3]]},
+];
+
+const DIM_META = {
+  A:{label:"Analytical Depth",   color:"#6366F1",bg:"rgba(99,102,241,0.12)"},
+  B:{label:"Aesthetic Sensibility",color:"#10B981",bg:"rgba(16,185,129,0.12)"},
+  C:{label:"Execution Drive",    color:"#F59E0B",bg:"rgba(245,158,11,0.12)"},
+  D:{label:"Ambiguity Tolerance",color:"#8B5CF6",bg:"rgba(139,92,246,0.12)"},
+  E:{label:"Stakeholder Orientation",color:"#EC4899",bg:"rgba(236,72,153,0.12)"},
+  F:{label:"Growth Mindset",     color:"#06B6D4",bg:"rgba(6,182,212,0.12)"},
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let cur = 0;
+let answers = new Array(60).fill(null);
+let timerSec = 0, timerInt = null;
+let userName = '', userEmail = '';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goToIdentity() { showScreen('s-identity'); }
+
+function startTest() {
+  const nameEl  = document.getElementById('inp-name');
+  const emailEl = document.getElementById('inp-email');
+  const errEl   = document.getElementById('id-error');
+
+  userName  = nameEl.value.trim();
+  userEmail = emailEl.value.trim().toLowerCase();
+
+  if (!userEmail || !userEmail.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  showScreen('s-test');
+  timerInt = setInterval(() => {
+    timerSec++;
+    const m = Math.floor(timerSec / 60), s = timerSec % 60;
+    document.getElementById('timer-display').textContent =
+      (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }, 1000);
+  renderQ();
+}
+
+function renderQ() {
+  const q = QUESTIONS[cur];
+  const meta = DIM_META[q.d];
+
+  document.getElementById('q-num').textContent = cur + 1;
+  const pct = Math.round((cur / 60) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = pct + '% complete · Section: ' + q.s;
+  document.getElementById('warn-msg').style.display = 'none';
+  document.getElementById('btn-prev').style.display = cur > 0 ? 'flex' : 'none';
+  document.getElementById('btn-next').innerHTML =
+    cur === 59 ? 'Submit Assessment ✓' : 'Next <span class="arr arr-r"></span>';
+
+  // Section badge
+  document.getElementById('sect-badge-wrap').innerHTML =
+    `<div class="sect-badge" style="color:${meta.color};background:${meta.bg};border-color:${meta.color}33">`
+    + `<span style="width:7px;height:7px;border-radius:50%;background:${meta.color};display:inline-block"></span>`
+    + meta.label + `</div>`;
+
+  // Options
+  let html = `<div class="q-card">
+    <div class="q-text"><span class="q-num">${cur + 1}.</span> ${q.q}</div>
+    <div class="options">`;
+  q.opts.forEach((o, i) => {
+    const sel = answers[cur] === i;
+    html += `<label class="opt-label${sel ? ' selected' : ''}" onclick="selectOpt(${i})">
+      <div class="opt-radio">
+        <div class="opt-radio-ring"><div class="opt-radio-dot"></div></div>
+      </div>
+      <span>${o[0]}</span>
+    </label>`;
+  });
+  html += '</div></div>';
+  document.getElementById('q-container').innerHTML = html;
+}
+
+function selectOpt(i) {
+  answers[cur] = i;
+  document.getElementById('warn-msg').style.display = 'none';
+  document.querySelectorAll('.opt-label').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+    const dot = el.querySelector('.opt-radio-dot');
+    const ring = el.querySelector('.opt-radio-ring');
+    if (idx === i) {
+      ring.style.borderColor = 'var(--primary)';
+      dot.style.opacity = '1'; dot.style.transform = 'scale(1)';
+    } else {
+      ring.style.borderColor = '';
+      dot.style.opacity = '0'; dot.style.transform = 'scale(0.5)';
+    }
+  });
+}
+
+function nextQ() {
+  if (answers[cur] === null) {
+    document.getElementById('warn-msg').style.display = 'block';
+    return;
+  }
+  if (cur === 59) { submitAssessment(); return; }
+  cur++;
+  renderQ();
+  window.scrollTo(0, 0);
+}
+
+function prevQ() {
+  if (cur > 0) { cur--; renderQ(); window.scrollTo(0, 0); }
+}
+
+async function submitAssessment() {
+  clearInterval(timerInt);
+  document.getElementById('loading-overlay').classList.add('active');
+
+  const payload = {
+    name: userName,
+    email: userEmail,
+    answers: answers,
+    time_taken_sec: timerSec
+  };
+
+  try {
+    const res  = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    document.getElementById('loading-overlay').classList.remove('active');
+
+    if (res.status === 409) {
+      showScreen('s-identity');
+      const errEl = document.getElementById('id-error');
+      errEl.textContent = 'This email has already submitted the assessment. Each person can submit once.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (!data.success) {
+      alert('Submission failed: ' + (data.error || 'Unknown error. Please try again.'));
+      return;
+    }
+
+    // Show thank you screen
+    document.getElementById('ty-name').textContent  = userName || '—';
+    document.getElementById('ty-email').textContent = userEmail;
+    const m = Math.floor(timerSec / 60), s = timerSec % 60;
+    document.getElementById('ty-time').textContent  = `${m} min ${s} sec`;
+    showScreen('s-thankyou');
+
+  } catch (e) {
+    document.getElementById('loading-overlay').classList.remove('active');
+    alert('Network error. Please check your connection and try again.');
+  }
+}
+</script>
+</body>
+</html>

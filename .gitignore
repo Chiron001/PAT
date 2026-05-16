@@ -1,0 +1,15 @@
+.claude/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+pat.db
+exports/
+*.log
+.env
+.DS_Store
+Thumbs.db
+*.egg-info/
+dist/
+build/
