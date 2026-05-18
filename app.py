@@ -9,8 +9,53 @@ app.secret_key = os.environ.get('SECRET_KEY', 'fig-living-pat-2024-xK9mP2qR7v!')
 CORS(app)
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'FigLiving@2024')
-# On Vercel only /tmp is writable; locally use project dir
-DB_PATH = '/tmp/pat.db' if os.environ.get('VERCEL') else os.path.join(os.path.dirname(__file__), 'pat.db')
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+USE_POSTGRES  = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+
+    class _DB:
+        def __init__(self):
+            self._conn = psycopg2.connect(DATABASE_URL)
+
+        def execute(self, sql, params=()):
+            sql = sql.replace('?', '%s')
+            cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(sql, params)
+            return cur
+
+        def commit(self):
+            self._conn.commit()
+
+        def close(self):
+            self._conn.close()
+
+    def get_db():
+        return _DB()
+
+else:
+    import sqlite3
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'pat.db')
+
+    class _DB:
+        def __init__(self):
+            self._conn = sqlite3.connect(DB_PATH)
+            self._conn.row_factory = sqlite3.Row
+
+        def execute(self, sql, params=()):
+            return self._conn.execute(sql, params)
+
+        def commit(self):
+            self._conn.commit()
+
+        def close(self):
+            self._conn.close()
+
+    def get_db():
+        return _DB()
 
 # ─── Questions & MBTI Data ────────────────────────────────────────────────────
 
@@ -107,44 +152,72 @@ ENABLING_DIMS = ["E", "B"]
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 
-def get_db():
-    import sqlite3
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 def init_db():
     conn = get_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS submissions (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            email            TEXT UNIQUE NOT NULL,
-            name             TEXT,
-            submitted_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-            time_taken_sec   INTEGER,
-            answers_json     TEXT,
-            dim_a            REAL, dim_b REAL, dim_c REAL,
-            dim_d            REAL, dim_e REAL, dim_f REAL,
-            overall_score    REAL,
-            weighted_score   REAL,
-            mbti_type        TEXT,
-            mbti_name        TEXT,
-            fit_rating       TEXT,
-            recommendation   TEXT,
-            narrative        TEXT,
-            red_flags_json   TEXT,
-            ip_address       TEXT,
-            cv_filename      TEXT,
-            cv_mimetype      TEXT,
-            cv_data          BLOB
-        )
-    """)
-    # Migration: add CV columns to existing databases
-    for col_def in [('cv_filename', 'TEXT'), ('cv_mimetype', 'TEXT'), ('cv_data', 'BLOB')]:
-        try:
-            conn.execute(f"ALTER TABLE submissions ADD COLUMN {col_def[0]} {col_def[1]}")
-        except Exception:
-            pass
+    if USE_POSTGRES:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS submissions (
+                id               SERIAL PRIMARY KEY,
+                email            TEXT UNIQUE NOT NULL,
+                name             TEXT,
+                submitted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                time_taken_sec   INTEGER,
+                answers_json     TEXT,
+                dim_a            REAL, dim_b REAL, dim_c REAL,
+                dim_d            REAL, dim_e REAL, dim_f REAL,
+                overall_score    REAL,
+                weighted_score   REAL,
+                mbti_type        TEXT,
+                mbti_name        TEXT,
+                fit_rating       TEXT,
+                recommendation   TEXT,
+                narrative        TEXT,
+                red_flags_json   TEXT,
+                ip_address       TEXT,
+                cv_filename      TEXT,
+                cv_mimetype      TEXT,
+                cv_data          BYTEA
+            )
+        """)
+        for col_sql in [
+            "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS cv_filename TEXT",
+            "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS cv_mimetype TEXT",
+            "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS cv_data BYTEA",
+        ]:
+            try:
+                conn.execute(col_sql)
+            except Exception:
+                pass
+    else:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS submissions (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                email            TEXT UNIQUE NOT NULL,
+                name             TEXT,
+                submitted_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+                time_taken_sec   INTEGER,
+                answers_json     TEXT,
+                dim_a            REAL, dim_b REAL, dim_c REAL,
+                dim_d            REAL, dim_e REAL, dim_f REAL,
+                overall_score    REAL,
+                weighted_score   REAL,
+                mbti_type        TEXT,
+                mbti_name        TEXT,
+                fit_rating       TEXT,
+                recommendation   TEXT,
+                narrative        TEXT,
+                red_flags_json   TEXT,
+                ip_address       TEXT,
+                cv_filename      TEXT,
+                cv_mimetype      TEXT,
+                cv_data          BLOB
+            )
+        """)
+        for col_def in [('cv_filename', 'TEXT'), ('cv_mimetype', 'TEXT'), ('cv_data', 'BLOB')]:
+            try:
+                conn.execute(f"ALTER TABLE submissions ADD COLUMN {col_def[0]} {col_def[1]}")
+            except Exception:
+                pass
     conn.commit()
     conn.close()
 
@@ -434,7 +507,7 @@ def api_overview():
     # Timeline (submissions per day)
     tl = {}
     for s in students:
-        day = s["submitted_at"][:10] if s["submitted_at"] else "unknown"
+        day = str(s["submitted_at"])[:10] if s["submitted_at"] else "unknown"
         tl[day] = tl.get(day, 0) + 1
     timeline = [{"date": d, "count": c} for d, c in sorted(tl.items())]
 
