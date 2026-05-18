@@ -38,31 +38,44 @@ class _Cur:
         return [dict(r) for r in self._c.fetchall()]
 
 
+def _pg_ssl_socket(hostname, port):
+    """
+    Manually negotiate the PostgreSQL SSL handshake and return an ssl-wrapped
+    socket.  This bypasses pg8000's internal ipaddress.ip_address(host) call
+    that raises ValueError for domain names in some pg8000 versions.
+    """
+    import socket, ssl, struct
+    raw = socket.create_connection((hostname, port), timeout=30)
+    # PostgreSQL SSLRequest: 4-byte message length (8) + 4-byte SSL magic
+    raw.sendall(struct.pack('!II', 8, 80877103))
+    resp = raw.recv(1)
+    if resp != b'S':
+        raw.close()
+        raise Exception(f"Postgres server declined SSL (got {resp!r})")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx.wrap_socket(raw, server_hostname=hostname)
+
+
 class _Conn:
     """Single interface for both SQLite and PostgreSQL.
     All SQL must use ? placeholders — converted to %s for PostgreSQL."""
     def __init__(self):
         if DATABASE_URL:
             import pg8000.dbapi as pg8000
-            import ssl, socket
             from urllib.parse import urlparse
             p = urlparse(DATABASE_URL.replace('postgres://', 'postgresql://', 1))
-            ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
-            # pg8000 calls ipaddress.ip_address(host) internally for SSL SNI —
-            # it raises ValueError for hostnames in some versions, so resolve first.
-            try:
-                host = socket.gethostbyname(p.hostname)
-            except Exception:
-                host = p.hostname
+            # Negotiate SSL ourselves so pg8000 never sees a hostname —
+            # pg8000 ≥ 1.30 calls ipaddress.ip_address(host) during its own
+            # SSL setup and raises ValueError for domain names.
+            ssl_sock = _pg_ssl_socket(p.hostname, p.port or 5432)
             self._conn = pg8000.connect(
                 user=p.username,
                 password=p.password,
-                host=host,
-                port=p.port or 5432,
-                database=p.path.lstrip('/'),
-                ssl_context=ssl_ctx
+                sock=ssl_sock,          # pre-SSL socket
+                database=p.path.lstrip('/')
+                # ssl_context intentionally omitted — would re-negotiate SSL
             )
             self._pg = True
         else:
