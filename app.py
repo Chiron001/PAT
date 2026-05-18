@@ -44,16 +44,22 @@ class _Conn:
     def __init__(self):
         if DATABASE_URL:
             import pg8000.dbapi as pg8000
-            import ssl
+            import ssl, socket
             from urllib.parse import urlparse
             p = urlparse(DATABASE_URL.replace('postgres://', 'postgresql://', 1))
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
+            # pg8000 calls ipaddress.ip_address(host) internally for SSL SNI —
+            # it raises ValueError for hostnames in some versions, so resolve first.
+            try:
+                host = socket.gethostbyname(p.hostname)
+            except Exception:
+                host = p.hostname
             self._conn = pg8000.connect(
                 user=p.username,
                 password=p.password,
-                host=p.hostname,
+                host=host,
                 port=p.port or 5432,
                 database=p.path.lstrip('/'),
                 ssl_context=ssl_ctx
