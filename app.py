@@ -404,77 +404,101 @@ def admin_required(f):
 def index():
     return render_template("assessment.html")
 
+@app.route("/api/health")
+def health():
+    """Diagnostic endpoint — visit /api/health to verify DB connection."""
+    try:
+        conn = get_db()
+        conn.execute("SELECT 1")
+        conn.close()
+        return jsonify({"ok": True, "db": "postgres" if DATABASE_URL else "sqlite"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/submit", methods=["POST"])
 def submit():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data"}), 400
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data received"}), 400
 
-    email       = (data.get("email") or "").strip().lower()
-    name        = (data.get("name")  or "").strip()
-    answers     = data.get("answers", [])
-    time_s      = data.get("time_taken_sec", 0)
-    cv_data_b64 = data.get("cv_data")
-    cv_filename = data.get("cv_filename")
-    cv_mimetype = data.get("cv_mimetype")
+        email       = (data.get("email") or "").strip().lower()
+        name        = (data.get("name")  or "").strip()
+        answers     = data.get("answers", [])
+        time_s      = data.get("time_taken_sec", 0)
+        cv_data_b64 = data.get("cv_data")
+        cv_filename = data.get("cv_filename")
+        cv_mimetype = data.get("cv_mimetype")
 
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-    if len(answers) != 60:
-        return jsonify({"error": "Incomplete submission"}), 400
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        if len(answers) != 60:
+            return jsonify({"error": f"Incomplete: got {len(answers)} answers, need 60"}), 400
 
-    cv_blob = None
-    if cv_data_b64:
+        cv_blob = None
+        if cv_data_b64:
+            try:
+                cv_blob = base64.b64decode(cv_data_b64)
+            except Exception:
+                cv_blob = None
+
+        pct     = calc_dim_scores(answers)
+        ws      = calc_weighted(pct)
+        mbti    = find_mbti(pct)
+        rec     = get_recommendation(pct, ws)
+        flags   = get_red_flags(pct)
+        overall = round(sum(pct.values()) / 6, 1)
+
+        conn = get_db()
         try:
-            cv_blob = base64.b64decode(cv_data_b64)
-        except Exception:
-            cv_blob = None
+            existing = conn.execute(
+                "SELECT id FROM submissions WHERE email=?", (email,)
+            ).fetchone()
+            if existing:
+                return jsonify({"error": "This email has already submitted the assessment."}), 409
 
-    pct   = calc_dim_scores(answers)
-    ws    = calc_weighted(pct)
-    mbti  = find_mbti(pct)
-    rec   = get_recommendation(pct, ws)
-    flags = get_red_flags(pct)
-    overall = round(sum(pct.values()) / 6, 1)
+            all_students = conn.execute(
+                "SELECT dim_a,dim_b,dim_c,dim_d,dim_e,dim_f FROM submissions"
+            ).fetchall()
+            cohort_avg = compute_cohort_avg(all_students)
+            temp_rank  = len(all_students) + 1
 
-    conn = get_db()
-    # Check if already submitted
-    existing = conn.execute("SELECT id FROM submissions WHERE email=?", (email,)).fetchone()
-    if existing:
-        conn.close()
-        return jsonify({"error": "This email has already submitted the assessment."}), 409
+            narrative_text = generate_narrative(
+                {"name": name, "email": email,
+                 "dim_a": pct["A"], "dim_b": pct["B"], "dim_c": pct["C"],
+                 "dim_d": pct["D"], "dim_e": pct["E"], "dim_f": pct["F"],
+                 "weighted_score": ws, "recommendation": rec},
+                temp_rank, temp_rank, cohort_avg
+            )
 
-    # Calculate rank placeholder (will be updated lazily)
-    all_students = [dict(r) for r in conn.execute("SELECT * FROM submissions").fetchall()]
-    cohort_avg = compute_cohort_avg(all_students)
-    temp_rank = len(all_students) + 1
-    total     = temp_rank
+            conn.execute("""
+                INSERT INTO submissions
+                (email, name, time_taken_sec, answers_json,
+                 dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
+                 overall_score, weighted_score, mbti_type, mbti_name,
+                 fit_rating, recommendation, narrative, red_flags_json,
+                 ip_address, cv_filename, cv_mimetype, cv_data)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                email, name, time_s, json.dumps(answers),
+                pct["A"], pct["B"], pct["C"], pct["D"], pct["E"], pct["F"],
+                overall, ws, mbti["type"], mbti["name"],
+                ("Strong Fit" if overall >= 75 else "Good Fit" if overall >= 62
+                 else "Partial Fit" if overall >= 48 else "Developmental"),
+                rec, narrative_text, json.dumps(flags),
+                request.remote_addr, cv_filename, cv_mimetype, cv_blob
+            ))
+            conn.commit()
+        finally:
+            try: conn.close()
+            except: pass
 
-    narrative_text = generate_narrative(
-        {"name": name, "email": email, "dim_a": pct["A"], "dim_b": pct["B"],
-         "dim_c": pct["C"], "dim_d": pct["D"], "dim_e": pct["E"], "dim_f": pct["F"],
-         "weighted_score": ws, "recommendation": rec},
-        temp_rank, total, cohort_avg
-    )
+        return jsonify({"success": True})
 
-    conn.execute("""
-        INSERT INTO submissions
-        (email, name, time_taken_sec, answers_json, dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
-         overall_score, weighted_score, mbti_type, mbti_name, fit_rating, recommendation,
-         narrative, red_flags_json, ip_address, cv_filename, cv_mimetype, cv_data)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, (
-        email, name, time_s, json.dumps(answers),
-        pct["A"], pct["B"], pct["C"], pct["D"], pct["E"], pct["F"],
-        overall, ws,
-        mbti["type"], mbti["name"],
-        ("Strong Fit" if overall >= 75 else "Good Fit" if overall >= 62 else "Partial Fit" if overall >= 48 else "Developmental"),
-        rec, narrative_text, json.dumps(flags),
-        request.remote_addr, cv_filename, cv_mimetype, cv_blob
-    ))
-    conn.commit()
-    conn.close()
-    return jsonify({"success": True})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 # ─── Admin Routes ─────────────────────────────────────────────────────────────
 

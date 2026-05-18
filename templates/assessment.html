@@ -865,14 +865,21 @@ async function submitAssessment() {
   };
 
   try {
-    const res  = await fetch('/api/submit', {
+    const res = await fetch('/api/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
 
     document.getElementById('loading-overlay').classList.remove('active');
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      alert(`Server error (HTTP ${res.status}). Please try again. If the problem persists, contact careers@figliving.com`);
+      return;
+    }
 
     if (res.status === 409) {
       showScreen('s-identity');
