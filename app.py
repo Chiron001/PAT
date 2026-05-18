@@ -9,47 +9,68 @@ app.secret_key = os.environ.get('SECRET_KEY', 'fig-living-pat-2024-xK9mP2qR7v!')
 CORS(app)
 
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'FigLiving@2024')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'pat.db')
-DATABASE_URL = os.environ.get('DATABASE_URL')  # set this on Vercel for persistent PostgreSQL
+DATABASE_URL = os.environ.get('DATABASE_URL')  # Supabase/Postgres URL — set in Vercel env vars
+# Fallback SQLite: use /tmp on Vercel (writable), local dir otherwise
+DB_PATH = '/tmp/pat.db' if (os.environ.get('VERCEL') and not DATABASE_URL) \
+           else os.path.join(os.path.dirname(__file__), 'pat.db')
 
-# ─── Database abstraction (SQLite locally, PostgreSQL on Vercel) ──────────────
+# ─── Database abstraction (SQLite locally, pg8000/PostgreSQL on Vercel) ───────
 
 class _Cur:
-    """Uniform cursor wrapper: fetchone/fetchall always return plain dicts."""
+    """Uniform cursor: fetchone/fetchall always return plain dicts."""
     def __init__(self, cur, is_pg):
         self._c, self._pg = cur, is_pg
 
+    def _cols(self):
+        return [d[0] for d in self._c.description] if self._c.description else []
+
     def fetchone(self):
         row = self._c.fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        # pg8000 returns tuples; sqlite3.Row supports dict()
+        return dict(zip(self._cols(), row)) if self._pg else dict(row)
 
     def fetchall(self):
-        return [dict(r) for r in (self._c.fetchall() or [])]
+        if self._pg:
+            cols = self._cols()
+            return [dict(zip(cols, r)) for r in (self._c.fetchall() or [])]
+        return [dict(r) for r in self._c.fetchall()]
 
 
 class _Conn:
-    """Use ? placeholders in all SQL — wrapper translates to %s for PostgreSQL."""
+    """Single interface for both SQLite and PostgreSQL.
+    All SQL must use ? placeholders — converted to %s for PostgreSQL."""
     def __init__(self):
         if DATABASE_URL:
-            import psycopg2, psycopg2.extras
-            url = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-            self._conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
+            import pg8000.dbapi as pg8000
+            import ssl
+            from urllib.parse import urlparse
+            p = urlparse(DATABASE_URL.replace('postgres://', 'postgresql://', 1))
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            self._conn = pg8000.connect(
+                user=p.username,
+                password=p.password,
+                host=p.hostname,
+                port=p.port or 5432,
+                database=p.path.lstrip('/'),
+                ssl_context=ssl_ctx
+            )
             self._pg = True
         else:
             import sqlite3
-            conn = sqlite3.connect(DB_PATH)
-            conn.row_factory = sqlite3.Row
-            self._conn = conn
+            c = sqlite3.connect(DB_PATH)
+            c.row_factory = sqlite3.Row
+            self._conn = c
             self._pg = False
 
     def execute(self, sql, params=()):
         if self._pg:
-            import psycopg2
             sql = sql.replace('?', '%s')
-            params = [psycopg2.Binary(p) if isinstance(p, (bytes, bytearray)) else p
-                      for p in params]
             cur = self._conn.cursor()
-            cur.execute(sql, params)
+            cur.execute(sql, list(params) if params else [])
             return _Cur(cur, True)
         return _Cur(self._conn.execute(sql, params), False)
 
@@ -217,7 +238,10 @@ def init_db():
     conn.commit()
     conn.close()
 
-init_db()
+try:
+    init_db()
+except Exception as _e:
+    print(f"[PAT] init_db warning: {_e}")
 
 # ─── Scoring & Analytics ─────────────────────────────────────────────────────
 
