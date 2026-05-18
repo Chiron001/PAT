@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#07070E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FIG Living — Business Analyst Assessment</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -361,12 +364,95 @@ body::before {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-/* ── Responsive ── */
+/* ── Responsive / Mobile ── */
 @media (max-width: 520px) {
   .card { padding: 18px 16px; }
   .meta-grid { grid-template-columns: repeat(2,1fr); }
   .ty-info-grid { grid-template-columns: 1fr; }
   .intro-title { font-size: 20px; }
+}
+
+@media (max-width: 640px) {
+  /* Body: no side padding on mobile — cards go edge-to-edge */
+  body { padding: 0 0 100px; align-items: stretch; }
+  body::before { display: none; }
+
+  .wrap { padding: 0 12px; max-width: 100%; }
+
+  /* Topbar compact */
+  .topbar { padding: 12px 0 16px; }
+  .logo-mark img { height: 24px; }
+
+  /* Cards */
+  .card { padding: 18px 14px; border-radius: 12px; }
+
+  /* ── Intro screen ── */
+  .intro-hero { padding: 20px 0 16px; }
+  .intro-title { font-size: 20px; }
+  .intro-sub { font-size: 13px; }
+  .meta-grid { grid-template-columns: repeat(2,1fr); gap: 8px; margin: 16px 0; }
+  .meta-tile { padding: 12px 8px; }
+  .meta-tile .val { font-size: 18px; }
+  .meta-tile .lbl { font-size: 10px; }
+  .dim-list { gap: 8px; }
+  .dim-row { font-size: 12.5px; }
+
+  /* ── Identity / form ── */
+  .form-title { font-size: 18px; }
+  /* Prevent iOS auto-zoom on focus */
+  .field input { font-size: 16px !important; }
+  .upload-area { padding: 16px 12px; }
+  .upload-label { font-size: 12.5px; }
+
+  /* ── Test screen: sticky progress header ── */
+  .test-top {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--bg);
+    padding: 10px 0 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .test-header { margin-bottom: 8px; }
+  .q-counter { font-size: 12px; }
+  .timer-display { font-size: 11px; padding: 3px 9px; }
+  .prog-label { font-size: 10.5px; margin-bottom: 0; }
+
+  /* Question card */
+  .q-card { padding: 16px 14px; }
+  .q-text { font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+
+  /* Options: bigger touch targets */
+  .options { gap: 8px; }
+  .opt-label {
+    padding: 14px 13px; gap: 12px;
+    min-height: 54px; font-size: 13px;
+    line-height: 1.55; border-radius: 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opt-radio-ring { width: 20px; height: 20px; }
+  .opt-radio-dot  { width: 9px; height: 9px; }
+
+  /* Section badge */
+  .sect-badge { font-size: 10.5px; padding: 3px 10px; margin-bottom: 10px; }
+
+  /* Fixed bottom nav bar */
+  .nav-row {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg); border-top: 1px solid var(--border);
+    padding: 12px 16px 24px; /* 24px bottom = safe area on notched phones */
+    margin: 0; z-index: 30;
+  }
+  #btn-next { flex: 1; justify-content: center; font-size: 14px; padding: 13px 16px; }
+  #btn-prev { font-size: 13px; padding: 13px 14px; flex-shrink: 0; }
+  #warn-msg { margin-bottom: 4px; font-size: 11.5px; }
+
+  /* Thank you screen */
+  .ty-title { font-size: 22px; }
+  .ty-sub   { font-size: 13px; }
+  .ty-info-grid { grid-template-columns: 1fr; }
+
+  /* Loading card */
+  .loading-card { padding: 28px 24px; margin: 0 16px; }
 }
 </style>
 </head>
@@ -477,12 +563,15 @@ body::before {
 
   <!-- ── Screen 3: Test ── -->
   <div id="s-test" class="screen">
-    <div class="test-header">
-      <div class="q-counter">Question <span id="q-num">1</span> <span style="color:var(--txt3)">/ 60</span></div>
-      <div class="timer-display" id="timer-display">00:00</div>
+    <!-- Sticky progress header (stays visible while scrolling on mobile) -->
+    <div class="test-top">
+      <div class="test-header">
+        <div class="q-counter">Question <span id="q-num">1</span> <span style="color:var(--txt3)">/ 60</span></div>
+        <div class="timer-display" id="timer-display">00:00</div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-label" id="prog-label">0% complete</div>
     </div>
-    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="prog-label" id="prog-label">0% complete</div>
 
     <div id="sect-badge-wrap"></div>
     <div id="q-container"></div>
