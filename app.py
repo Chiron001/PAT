@@ -756,6 +756,82 @@ def export_narratives():
     response.headers["Content-Type"] = "text/plain; charset=utf-8"
     return response
 
+# ─── Demo Seed ───────────────────────────────────────────────────────────────
+
+DEMO_CANDIDATES = [
+    {"name":"Arjun Mehta",    "email":"arjun.mehta@demo.com",    "answers":[0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0], "time_taken_sec":2340},
+    {"name":"Priya Sharma",   "email":"priya.sharma@demo.com",   "answers":[1,1,0,1,0,1,0,0,1,0, 3,1,2,2,0,1,0,0,1,0, 0,0,0,0,1,0,0,0,0,0, 0,1,0,0,0,0,0,0,0,0, 0,0,0,3,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0], "time_taken_sec":1980},
+    {"name":"Rohan Gupta",    "email":"rohan.gupta@demo.com",    "answers":[2,2,1,2,1,0,1,1,2,1, 1,2,1,1,1,1,1,1,2,1, 1,1,1,1,0,1,1,1,1,1, 1,0,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1], "time_taken_sec":2700},
+    {"name":"Sneha Patel",    "email":"sneha.patel@demo.com",    "answers":[3,3,3,3,2,1,3,2,3,2, 2,3,3,2,0,3,2,0,3,3, 3,0,0,0,0,3,0,2,0,0, 0,2,0,0,3,0,0,3,0,0, 0,3,0,3,0,3,0,0,3,0, 0,3,0,3,0,0,3,0,0,3], "time_taken_sec":3120},
+    {"name":"Vikram Nair",    "email":"vikram.nair@demo.com",    "answers":[0,0,0,0,0,2,0,0,0,0, 2,0,1,0,3,2,2,2,0,2, 2,1,2,1,3,2,2,2,2,1, 2,2,2,2,2,2,2,0,2,2, 2,2,2,0,2,2,2,2,2,2, 2,2,2,0,2,2,2,0,2,0], "time_taken_sec":2160},
+    {"name":"Ananya Krishnan","email":"ananya.k@demo.com",       "answers":[0,0,0,0,0,0,0,0,0,0, 0,2,0,2,0,0,2,2,1,0, 0,0,0,0,0,0,0,0,3,0, 0,0,0,3,0,1,0,0,0,3, 0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0], "time_taken_sec":1740},
+    {"name":"Rahul Bansal",   "email":"rahul.bansal@demo.com",   "answers":[0,0,0,0,2,0,0,0,0,3, 0,0,0,0,0,0,0,0,3,0, 0,0,0,0,0,0,3,0,0,0, 0,0,0,0,0,0,0,3,0,0, 3,0,0,0,3,0,0,3,0,3, 0,0,3,0,0,3,0,0,3,0], "time_taken_sec":2520},
+    {"name":"Meera Iyer",     "email":"meera.iyer@demo.com",     "answers":[0,0,0,0,0,0,0,0,0,0, 3,3,3,2,0,0,2,3,3,3, 0,2,0,2,1,0,2,0,0,2, 0,0,0,0,0,0,0,0,0,0, 0,0,2,3,0,2,2,0,0,2, 2,0,0,2,2,0,0,2,2,0], "time_taken_sec":2880},
+]
+
+@app.route("/api/admin/seed-demo", methods=["POST"])
+@admin_required
+def seed_demo():
+    """Insert realistic demo candidates so the dashboard can be previewed."""
+    ensure_db()
+    conn = get_db()
+    inserted = 0
+    skipped  = 0
+    try:
+        all_rows = conn.execute("SELECT dim_a,dim_b,dim_c,dim_d,dim_e,dim_f FROM submissions").fetchall()
+        cohort_avg = compute_cohort_avg(all_rows)
+
+        for d in DEMO_CANDIDATES:
+            existing = conn.execute("SELECT id FROM submissions WHERE email=?", (d["email"],)).fetchone()
+            if existing:
+                skipped += 1
+                continue
+
+            answers = d["answers"]
+            pct     = calc_dim_scores(answers)
+            ws      = calc_weighted(pct)
+            mbti    = find_mbti(pct)
+            rec     = get_recommendation(pct, ws)
+            flags   = get_red_flags(pct)
+            overall = round(sum(pct.values()) / 6, 1)
+            temp_rank = (conn.execute("SELECT COUNT(*) as c FROM submissions").fetchone() or {"c":0})["c"] + 1
+
+            narrative_text = generate_narrative(
+                {"name": d["name"], "email": d["email"],
+                 "dim_a": pct["A"], "dim_b": pct["B"], "dim_c": pct["C"],
+                 "dim_d": pct["D"], "dim_e": pct["E"], "dim_f": pct["F"],
+                 "weighted_score": ws, "recommendation": rec},
+                temp_rank, temp_rank, cohort_avg
+            )
+
+            conn.execute("""
+                INSERT INTO submissions
+                (email, name, time_taken_sec, answers_json,
+                 dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
+                 overall_score, weighted_score, mbti_type, mbti_name,
+                 fit_rating, recommendation, narrative, red_flags_json,
+                 ip_address, cv_filename, cv_mimetype, cv_data)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                d["email"], d["name"], d["time_taken_sec"], json.dumps(answers),
+                pct["A"], pct["B"], pct["C"], pct["D"], pct["E"], pct["F"],
+                overall, ws, mbti["type"], mbti["name"],
+                ("Strong Fit" if overall >= 75 else "Good Fit" if overall >= 62
+                 else "Partial Fit" if overall >= 48 else "Developmental"),
+                rec, narrative_text, json.dumps(flags),
+                "127.0.0.1", None, None, None
+            ))
+            inserted += 1
+
+        conn.commit()
+    finally:
+        try: conn.close()
+        except: pass
+
+    return jsonify({"ok": True, "inserted": inserted, "skipped": skipped,
+                    "message": f"Inserted {inserted} demo candidates ({skipped} already existed)."})
+
+
 # ─── Setup Routes ────────────────────────────────────────────────────────────
 
 @app.route("/setup")

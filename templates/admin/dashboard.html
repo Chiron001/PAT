@@ -341,15 +341,41 @@ tbody tr:last-child td { border-bottom: none; }
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="refreshData()">↻ Refresh</button>
+      <button class="btn btn-ghost" id="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+      <button class="btn btn-ghost" onclick="seedDemo()" id="btn-seed" title="Insert 8 realistic demo candidates to preview the dashboard" style="color:var(--warn);border-color:rgba(245,158,11,0.3);">⚡ Seed Demo</button>
       <a href="/admin/logout" class="btn btn-ghost">Logout</a>
     </div>
   </div>
+
+  <!-- Global loading bar -->
+  <div id="load-bar" style="height:2px;background:linear-gradient(90deg,#6366F1,#8B5CF6);position:relative;overflow:hidden;display:none;">
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);animation:shimmer 1s infinite;"></div>
+  </div>
+  <style>@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>
+
+  <!-- Global error banner -->
+  <div id="error-banner" style="display:none;background:rgba(239,68,68,0.1);border-bottom:1px solid rgba(239,68,68,0.25);padding:10px 28px;font-size:12.5px;color:#FCA5A5;display:none;"></div>
 
   <div class="content">
 
     <!-- ── OVERVIEW ── -->
     <div id="section-overview" class="section active">
+
+      <!-- Empty state shown when no data -->
+      <div id="empty-state" style="display:none;text-align:center;padding:60px 20px;">
+        <div style="font-size:56px;margin-bottom:16px;">📭</div>
+        <div style="font-size:20px;font-weight:700;color:var(--txt);margin-bottom:8px;">No submissions yet</div>
+        <div style="font-size:13.5px;color:var(--txt2);max-width:420px;margin:0 auto 28px;line-height:1.7;">
+          The database is connected but empty. Either share the assessment link with candidates, or click
+          <strong style="color:var(--warn)">⚡ Seed Demo</strong> in the top bar to insert 8 realistic sample candidates and preview the full dashboard.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="seedDemo()" style="color:var(--warn);border-color:rgba(245,158,11,0.3);">⚡ Seed Demo Data</button>
+          <a href="/" target="_blank" class="btn btn-ghost" style="text-decoration:none;">↗ View Assessment Form</a>
+        </div>
+      </div>
+
+      <div id="overview-content">
       <div class="kpi-grid" id="kpi-grid">
         <div class="kpi-card" style="border-left-color:#6366F1">
           <div class="kpi-val" id="kpi-total" style="color:#818CF8">—</div>
@@ -403,6 +429,7 @@ tbody tr:last-child td { border-bottom: none; }
         <div class="card-title mb-16">Dimension Health Check</div>
         <div id="dim-health-grid"></div>
       </div>
+      </div><!-- /overview-content -->
     </div>
 
     <!-- ── ALL CANDIDATES ── -->
@@ -708,14 +735,66 @@ function renderSection(id) {
 }
 
 // ── Data loading ─────────────────────────────────────────────────────────────
+function showLoader(on) {
+  document.getElementById('load-bar').style.display = on ? 'block' : 'none';
+  const btn = document.getElementById('btn-refresh');
+  if (btn) btn.textContent = on ? '⏳ Loading…' : '↻ Refresh';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  if (!msg) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `⚠ ${msg} &nbsp;<button onclick="document.getElementById('error-banner').style.display='none'" style="background:none;border:none;color:inherit;cursor:pointer;font-size:13px;">✕</button>`;
+}
+
 async function loadAll() {
-  const [ovRes, cndRes] = await Promise.all([
-    fetch('/api/admin/overview'),
-    fetch('/api/admin/candidates'),
-  ]);
-  overviewData  = await ovRes.json();
-  allCandidates = await cndRes.json();
-  renderOverview();
+  showLoader(true);
+  showError('');
+  try {
+    const [ovRes, cndRes] = await Promise.all([
+      fetch('/api/admin/overview'),
+      fetch('/api/admin/candidates'),
+    ]);
+
+    if (!ovRes.ok) throw new Error(`Overview API returned ${ovRes.status}`);
+    if (!cndRes.ok) throw new Error(`Candidates API returned ${cndRes.status}`);
+
+    overviewData  = await ovRes.json();
+    allCandidates = await cndRes.json();
+
+    if (overviewData.error) throw new Error(overviewData.error);
+    if (!Array.isArray(allCandidates)) throw new Error('Unexpected candidates response');
+
+    renderOverview();
+  } catch (e) {
+    showError('Failed to load data: ' + e.message + '. Check your database connection at /setup');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function seedDemo() {
+  const btn = document.getElementById('btn-seed');
+  if (!confirm('Insert 8 realistic demo candidates into the database?\n\nThis lets you preview the full dashboard. Demo emails end in @demo.com and can be deleted later.')) return;
+  btn.textContent = '⏳ Seeding…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/admin/seed-demo', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      await loadAll();
+      renderSection(currentSection());
+      showError('');
+    } else {
+      showError('Seed failed: ' + (d.error || 'Unknown error'));
+    }
+  } catch (e) {
+    showError('Seed error: ' + e.message);
+  } finally {
+    btn.textContent = '⚡ Seed Demo';
+    btn.disabled = false;
+  }
 }
 
 async function refreshData() { await loadAll(); renderSection(currentSection()); }
@@ -760,12 +839,27 @@ function fmtTime(sec) {
 // ── Overview ─────────────────────────────────────────────────────────────────
 function renderOverview() {
   const d = overviewData;
+
+  const empty   = document.getElementById('empty-state');
+  const content = document.getElementById('overview-content');
+
+  if (!d.total) {
+    empty.style.display   = 'block';
+    content.style.display = 'none';
+    document.getElementById('kpi-total').textContent = '0';
+    document.getElementById('kpi-avg').textContent   = '—';
+    document.getElementById('kpi-sr').textContent    = '0';
+    document.getElementById('kpi-nr').textContent    = '0';
+    return;
+  }
+
+  empty.style.display   = 'none';
+  content.style.display = 'block';
+
   document.getElementById('kpi-total').textContent = d.total ?? '—';
   document.getElementById('kpi-avg').textContent   = d.avg_weighted != null ? d.avg_weighted + '%' : '—';
   document.getElementById('kpi-sr').textContent    = d.strongly_rec ?? '—';
   document.getElementById('kpi-nr').textContent    = d.not_rec ?? '—';
-
-  if (!d.total) return;
 
   // Rec distribution donut
   const recLabels = Object.keys(d.rec_dist || {});
