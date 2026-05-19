@@ -38,45 +38,56 @@ class _Cur:
         return [dict(r) for r in self._c.fetchall()]
 
 
-def _pg_ssl_socket(hostname, port):
+def _pg_connect_url(url_str):
     """
-    Manually negotiate the PostgreSQL SSL handshake and return an ssl-wrapped
-    socket.  This bypasses pg8000's internal ipaddress.ip_address(host) call
-    that raises ValueError for domain names in some pg8000 versions.
+    Connect to PostgreSQL via URL string.
+    Strategy 1: SSL negotiation (works for direct Supabase port 5432).
+    Strategy 2: Plain TCP (works for Supabase pooler port 6543 / PgBouncer).
+    pg8000's own SSL path is avoided because it calls ipaddress.ip_address(host)
+    which raises ValueError for domain-name hosts in some versions.
     """
     import socket, ssl, struct
-    raw = socket.create_connection((hostname, port), timeout=30)
-    # PostgreSQL SSLRequest: 4-byte message length (8) + 4-byte SSL magic
-    raw.sendall(struct.pack('!II', 8, 80877103))
-    resp = raw.recv(1)
-    if resp != b'S':
+    import pg8000.dbapi as pg8000
+    from urllib.parse import urlparse
+
+    p    = urlparse(url_str.replace('postgres://', 'postgresql://', 1))
+    host = p.hostname
+    port = p.port or 5432
+
+    # ── Strategy 1: SSL negotiation ──────────────────────────────────────────
+    try:
+        raw = socket.create_connection((host, port), timeout=30)
+        raw.sendall(struct.pack('!II', 8, 80877103))   # SSLRequest
+        resp = raw.recv(1)
+        if resp == b'S':
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode    = ssl.CERT_NONE
+            ssl_sock = ctx.wrap_socket(raw, server_hostname=host)
+            return pg8000.connect(
+                user=p.username, password=p.password,
+                sock=ssl_sock, database=p.path.lstrip('/')
+            )
+        # Pooler (PgBouncer) often returns b'N' or b'\x00' — fall through
         raw.close()
-        raise Exception(f"Postgres server declined SSL (got {resp!r})")
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    return ctx.wrap_socket(raw, server_hostname=hostname)
+    except Exception:
+        pass
+
+    # ── Strategy 2: plain TCP (pooler / no-SSL mode) ─────────────────────────
+    raw = socket.create_connection((host, port), timeout=30)
+    return pg8000.connect(
+        user=p.username, password=p.password,
+        sock=raw, database=p.path.lstrip('/')
+    )
 
 
 class _Conn:
     """Single interface for both SQLite and PostgreSQL.
     All SQL must use ? placeholders — converted to %s for PostgreSQL."""
-    def __init__(self):
-        if DATABASE_URL:
-            import pg8000.dbapi as pg8000
-            from urllib.parse import urlparse
-            p = urlparse(DATABASE_URL.replace('postgres://', 'postgresql://', 1))
-            # Negotiate SSL ourselves so pg8000 never sees a hostname —
-            # pg8000 ≥ 1.30 calls ipaddress.ip_address(host) during its own
-            # SSL setup and raises ValueError for domain names.
-            ssl_sock = _pg_ssl_socket(p.hostname, p.port or 5432)
-            self._conn = pg8000.connect(
-                user=p.username,
-                password=p.password,
-                sock=ssl_sock,          # pre-SSL socket
-                database=p.path.lstrip('/')
-                # ssl_context intentionally omitted — would re-negotiate SSL
-            )
+    def __init__(self, url_override=None):
+        url = url_override or DATABASE_URL
+        if url:
+            self._conn = _pg_connect_url(url)
             self._pg = True
         else:
             import sqlite3
@@ -262,6 +273,21 @@ try:
 except Exception as _e:
     print(f"[PAT] init_db warning: {_e}")
 
+def ensure_db():
+    """Call before any DB operation to guarantee the table exists."""
+    try:
+        conn = get_db()
+        if conn._pg:
+            conn.execute("SELECT 1 FROM submissions LIMIT 1")
+        else:
+            conn.execute("SELECT 1 FROM submissions LIMIT 1")
+        conn.close()
+    except Exception:
+        try:
+            init_db()
+        except Exception as e:
+            print(f"[PAT] ensure_db warning: {e}")
+
 # ─── Scoring & Analytics ─────────────────────────────────────────────────────
 
 def calc_dim_scores(answers):
@@ -436,6 +462,7 @@ def health():
 
 @app.route("/api/submit", methods=["POST"])
 def submit():
+    ensure_db()
     try:
         data = request.get_json()
         if not data:
@@ -728,6 +755,183 @@ def export_narratives():
     response.headers["Content-Disposition"] = f'attachment; filename="fig_living_narratives_{datetime.now().strftime("%Y%m%d_%H%M")}.txt"'
     response.headers["Content-Type"] = "text/plain; charset=utf-8"
     return response
+
+# ─── Setup Routes ────────────────────────────────────────────────────────────
+
+@app.route("/setup")
+def setup_page():
+    return render_template("setup.html")
+
+
+@app.route("/api/setup/status")
+def setup_status():
+    """Returns DB connection status, type, and table info."""
+    try:
+        conn = get_db()
+        conn.execute("SELECT 1")
+        db_type = "postgres" if DATABASE_URL else "sqlite"
+
+        # Check if table exists
+        if conn._pg:
+            row = conn.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables "
+                "WHERE table_schema='public' AND table_name='submissions')"
+            ).fetchone()
+            table_exists = bool(list(row.values())[0])
+        else:
+            row = conn.execute(
+                "SELECT COUNT(*) as c FROM sqlite_master "
+                "WHERE type='table' AND name='submissions'"
+            ).fetchone()
+            table_exists = (row["c"] > 0) if row else False
+
+        row_count = 0
+        if table_exists:
+            cnt = conn.execute("SELECT COUNT(*) as c FROM submissions").fetchone()
+            row_count = cnt["c"] if cnt else 0
+
+        conn.close()
+
+        masked = None
+        if DATABASE_URL:
+            from urllib.parse import urlparse
+            p = urlparse(DATABASE_URL)
+            masked = f"postgresql://{p.hostname}:{p.port or 5432}/{p.path.lstrip('/')}"
+
+        return jsonify({
+            "ok": True,
+            "db_type": db_type,
+            "database_url_set": bool(DATABASE_URL),
+            "database_url_masked": masked,
+            "table_exists": table_exists,
+            "row_count": row_count,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "db_type": "error"})
+
+
+@app.route("/api/setup/test", methods=["POST"])
+def setup_test():
+    """Tests a DATABASE_URL — or current connection if none provided."""
+    data     = request.get_json() or {}
+    test_url = (data.get("database_url") or "").strip() or DATABASE_URL
+
+    if not test_url:
+        try:
+            import sqlite3
+            c = sqlite3.connect(":memory:")
+            c.execute("SELECT 1")
+            c.close()
+            return jsonify({"ok": True, "db_type": "sqlite", "version": "SQLite in-memory"})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)})
+
+    try:
+        conn = _pg_connect_url(test_url)
+        cur  = conn.cursor()
+        cur.execute("SELECT version()")
+        version = str(cur.fetchone()[0])[:80]
+        conn.close()
+        return jsonify({"ok": True, "db_type": "postgres", "version": version})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/api/setup/init", methods=["POST"])
+def setup_init():
+    """Creates the submissions table if it doesn't exist."""
+    try:
+        init_db()
+        return jsonify({"ok": True, "message": "Database tables initialized successfully. Existing data was preserved."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/api/setup/save-env", methods=["POST"])
+def setup_save_env():
+    """Saves DATABASE_URL / ADMIN_PASSWORD to .env file (local dev only)."""
+    if os.environ.get("VERCEL"):
+        return jsonify({
+            "ok": False,
+            "error": "Running on Vercel — set environment variables in the Vercel dashboard instead. .env files are not writable in serverless deployments."
+        })
+
+    data         = request.get_json() or {}
+    database_url = (data.get("database_url") or "").strip()
+    admin_pw     = (data.get("admin_password") or "").strip()
+
+    if not database_url and not admin_pw:
+        return jsonify({"ok": False, "error": "Nothing to save — provide at least one value."})
+
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+
+    # Read existing entries
+    env_vars = {}
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    env_vars[k.strip()] = v.strip()
+
+    if database_url:
+        env_vars["DATABASE_URL"] = database_url
+    if admin_pw:
+        env_vars["ADMIN_PASSWORD"] = admin_pw
+
+    try:
+        with open(env_path, "w") as f:
+            for k, v in env_vars.items():
+                f.write(f"{k}={v}\n")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not write .env: {e}"})
+
+    return jsonify({
+        "ok": True,
+        "message": ".env file saved successfully. Restart the server for changes to take effect."
+    })
+
+
+@app.route("/api/setup/change-password", methods=["POST"])
+def setup_change_password():
+    """Updates admin password in .env (local) or returns Vercel instructions."""
+    data        = request.get_json() or {}
+    current_pw  = data.get("current_password", "")
+    new_pw      = (data.get("new_password") or "").strip()
+
+    if current_pw != ADMIN_PASSWORD:
+        return jsonify({"ok": False, "error": "Current password is incorrect."})
+    if not new_pw or len(new_pw) < 8:
+        return jsonify({"ok": False, "error": "New password must be at least 8 characters."})
+
+    if os.environ.get("VERCEL"):
+        return jsonify({
+            "ok": False,
+            "error": "On Vercel: set ADMIN_PASSWORD in your Vercel project's Environment Variables, then redeploy."
+        })
+
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    env_vars = {}
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    env_vars[k.strip()] = v.strip()
+
+    env_vars["ADMIN_PASSWORD"] = new_pw
+
+    try:
+        with open(env_path, "w") as f:
+            for k, v in env_vars.items():
+                f.write(f"{k}={v}\n")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not write .env: {e}"})
+
+    return jsonify({"ok": True, "message": "Password saved to .env. Restart server to apply."})
+
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 

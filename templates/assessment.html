@@ -724,6 +724,69 @@ let timerSec = 0, timerInt = null;
 let userName = '', userEmail = '';
 let cvData = null, cvFilename = null, cvMimetype = null;
 
+const STORAGE_KEY = 'pat_session_v1';
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      cur, answers, timerSec, userName, userEmail,
+      savedAt: Date.now()
+    }));
+  } catch (_) {}
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // Discard sessions older than 4 hours
+    if (Date.now() - s.savedAt > 4 * 3600 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return s;
+  } catch (_) { return null; }
+}
+
+function clearProgress() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+}
+
+// Restore any saved in-progress session on page load
+(function restoreSession() {
+  const s = loadProgress();
+  if (!s || s.answers.every(a => a === null)) return;
+  const answered = s.answers.filter(a => a !== null).length;
+  if (answered === 0) return;
+  if (!confirm(`You have a saved session (${answered}/60 questions answered). Resume where you left off?`)) {
+    clearProgress();
+    return;
+  }
+  cur      = s.cur;
+  answers  = s.answers;
+  timerSec = s.timerSec || 0;
+  userName = s.userName || '';
+  userEmail= s.userEmail || '';
+
+  if (userName || userEmail) {
+    document.getElementById('inp-name').value  = userName;
+    document.getElementById('inp-email').value = userEmail;
+  }
+
+  if (cur > 0 || answered > 0) {
+    showScreen('s-test');
+    timerInt = setInterval(() => {
+      timerSec++;
+      const m = Math.floor(timerSec/60), sec = timerSec%60;
+      document.getElementById('timer-display').textContent =
+        (m<10?'0'+m:m) + ':' + (sec<10?'0'+sec:sec);
+      saveProgress();
+    }, 1000);
+    renderQ();
+  }
+})();
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -771,6 +834,7 @@ function startTest() {
     return;
   }
   errEl.style.display = 'none';
+  saveProgress();
 
   showScreen('s-test');
   timerInt = setInterval(() => {
@@ -778,6 +842,7 @@ function startTest() {
     const m = Math.floor(timerSec / 60), s = timerSec % 60;
     document.getElementById('timer-display').textContent =
       (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    saveProgress();
   }, 1000);
   renderQ();
 }
@@ -820,6 +885,7 @@ function renderQ() {
 
 function selectOpt(i) {
   answers[cur] = i;
+  saveProgress();
   document.getElementById('warn-msg').style.display = 'none';
   document.querySelectorAll('.opt-label').forEach((el, idx) => {
     el.classList.toggle('selected', idx === i);
@@ -893,6 +959,8 @@ async function submitAssessment() {
       alert('Submission failed: ' + (data.error || 'Unknown error. Please try again.'));
       return;
     }
+
+    clearProgress();
 
     // Show thank you screen
     document.getElementById('ty-name').textContent  = userName || '—';
