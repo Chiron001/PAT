@@ -570,100 +570,151 @@ def admin_logout():
     session.pop("admin", None)
     return redirect(url_for("admin_login"))
 
+def _safe_val(v, cast=None):
+    """Convert pg8000 / SQLite values to plain Python types safe for JSON."""
+    if v is None:
+        return None
+    if cast:
+        try: return cast(v)
+        except Exception: return v
+    return v
+
+def _fmt_dt(v):
+    """Return ISO date string regardless of whether v is a str or datetime."""
+    if v is None:
+        return None
+    return str(v)[:19]   # works for both "2024-05-19 10:30:00" and datetime objects
+
+def _safe_row(r):
+    """Convert a submissions row dict into JSON-safe types."""
+    s = dict(r)
+    s["submitted_at"]   = _fmt_dt(s.get("submitted_at"))
+    s["dim_a"]          = float(s.get("dim_a") or 0)
+    s["dim_b"]          = float(s.get("dim_b") or 0)
+    s["dim_c"]          = float(s.get("dim_c") or 0)
+    s["dim_d"]          = float(s.get("dim_d") or 0)
+    s["dim_e"]          = float(s.get("dim_e") or 0)
+    s["dim_f"]          = float(s.get("dim_f") or 0)
+    s["overall_score"]  = float(s.get("overall_score") or 0)
+    s["weighted_score"] = float(s.get("weighted_score") or 0)
+    s["time_taken_sec"] = int(s.get("time_taken_sec") or 0)
+    # drop binary CV blob — never needed in JSON responses
+    s.pop("cv_data", None)
+    return s
+
+# Explicit column list that never includes cv_data
+_CANDIDATE_COLS = """
+    id, email, name, submitted_at, time_taken_sec,
+    dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
+    overall_score, weighted_score, mbti_type, mbti_name,
+    fit_rating, recommendation, narrative, red_flags_json,
+    ip_address, cv_filename
+"""
+
 @app.route("/api/admin/overview")
 @admin_required
 def api_overview():
-    conn = get_db()
-    students = [dict(r) for r in conn.execute("SELECT * FROM submissions ORDER BY weighted_score DESC").fetchall()]
-    conn.close()
+    try:
+        conn = get_db()
+        rows = conn.execute(
+            f"SELECT {_CANDIDATE_COLS} FROM submissions ORDER BY weighted_score DESC"
+        ).fetchall()
+        conn.close()
+        students = [_safe_row(r) for r in rows]
 
-    if not students:
-        return jsonify({"total": 0, "avg_weighted": 0, "rec_dist": {}, "dim_avgs": {}, "timeline": [], "mbti_dist": {}})
+        if not students:
+            return jsonify({"total": 0, "avg_weighted": 0, "rec_dist": {},
+                            "dim_avgs": {}, "timeline": [], "mbti_dist": {}})
 
-    total = len(students)
-    avg_w = round(statistics.mean([s["weighted_score"] for s in students]), 1)
-    avg_o = round(statistics.mean([s["overall_score"] for s in students]), 1)
+        total = len(students)
+        avg_w = round(statistics.mean([s["weighted_score"] for s in students]), 1)
+        avg_o = round(statistics.mean([s["overall_score"]  for s in students]), 1)
 
-    rec_dist = {}
-    for s in students:
-        rec_dist[s["recommendation"]] = rec_dist.get(s["recommendation"], 0) + 1
+        rec_dist = {}
+        for s in students:
+            rec_dist[s["recommendation"]] = rec_dist.get(s["recommendation"], 0) + 1
 
-    dim_avgs = {k: round(statistics.mean([s[f"dim_{k.lower()}"] for s in students]), 1) for k in "ABCDEF"}
+        dim_avgs = {k: round(statistics.mean([s[f"dim_{k.lower()}"] for s in students]), 1)
+                    for k in "ABCDEF"}
 
-    mbti_dist = {}
-    for s in students:
-        mbti_dist[s["mbti_type"]] = mbti_dist.get(s["mbti_type"], 0) + 1
+        mbti_dist = {}
+        for s in students:
+            t = s.get("mbti_type") or "Unknown"
+            mbti_dist[t] = mbti_dist.get(t, 0) + 1
 
-    # Timeline (submissions per day)
-    tl = {}
-    for s in students:
-        day = s["submitted_at"][:10] if s["submitted_at"] else "unknown"
-        tl[day] = tl.get(day, 0) + 1
-    timeline = [{"date": d, "count": c} for d, c in sorted(tl.items())]
+        # Timeline — submitted_at is now always a plain string
+        tl = {}
+        for s in students:
+            day = (s["submitted_at"] or "")[:10] or "unknown"
+            tl[day] = tl.get(day, 0) + 1
+        timeline = [{"date": d, "count": c} for d, c in sorted(tl.items())]
 
-    # Dimension stats
-    dim_stats = {}
-    for k in "ABCDEF":
-        vals = [s[f"dim_{k.lower()}"] for s in students]
-        dim_stats[k] = {
-            "avg": round(statistics.mean(vals), 1),
-            "min": min(vals), "max": max(vals),
-            "std": round(statistics.stdev(vals), 1) if len(vals) > 1 else 0,
-            "label": DIM_LABELS[k], "color": DIM_COLORS[k]
-        }
+        # Dimension stats
+        dim_stats = {}
+        for k in "ABCDEF":
+            vals = [s[f"dim_{k.lower()}"] for s in students]
+            dim_stats[k] = {
+                "avg": round(statistics.mean(vals), 1),
+                "min": min(vals), "max": max(vals),
+                "std": round(statistics.stdev(vals), 1) if len(vals) > 1 else 0,
+                "label": DIM_LABELS[k], "color": DIM_COLORS[k]
+            }
 
-    return jsonify({
-        "total": total, "avg_weighted": avg_w, "avg_overall": avg_o,
-        "rec_dist": rec_dist, "dim_avgs": dim_avgs, "dim_stats": dim_stats,
-        "mbti_dist": mbti_dist, "timeline": timeline,
-        "strongly_rec": rec_dist.get("Strongly Recommended", 0),
-        "not_rec": rec_dist.get("Not Recommended", 0),
-    })
+        return jsonify({
+            "total": total, "avg_weighted": avg_w, "avg_overall": avg_o,
+            "rec_dist": rec_dist, "dim_avgs": dim_avgs, "dim_stats": dim_stats,
+            "mbti_dist": mbti_dist, "timeline": timeline,
+            "strongly_rec": rec_dist.get("Strongly Recommended", 0),
+            "not_rec":      rec_dist.get("Not Recommended", 0),
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/admin/candidates")
 @admin_required
 def api_candidates():
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT id, email, name, submitted_at, time_taken_sec,
-               dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
-               overall_score, weighted_score, mbti_type, mbti_name,
-               fit_rating, recommendation, narrative, red_flags_json,
-               ip_address, cv_filename
-        FROM submissions ORDER BY weighted_score DESC
-    """).fetchall()
-    conn.close()
-    students = []
-    for rank, r in enumerate(rows, 1):
-        s = dict(r)
-        s["rank"] = rank
-        s["red_flags"] = json.loads(s.get("red_flags_json") or "[]")
-        s["has_cv"] = bool(s.get("cv_filename"))
-        del s["red_flags_json"]
-        students.append(s)
-    return jsonify(students)
+    try:
+        conn = get_db()
+        rows = conn.execute(
+            f"SELECT {_CANDIDATE_COLS} FROM submissions ORDER BY weighted_score DESC"
+        ).fetchall()
+        conn.close()
+        students = []
+        for rank, r in enumerate(rows, 1):
+            s = _safe_row(r)
+            s["rank"]      = rank
+            s["red_flags"] = json.loads(s.pop("red_flags_json", None) or "[]")
+            s["has_cv"]    = bool(s.get("cv_filename"))
+            students.append(s)
+        return jsonify(students)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/admin/candidate/<int:sid>")
 @admin_required
 def api_candidate(sid):
-    conn = get_db()
-    row = conn.execute("""
-        SELECT id, email, name, submitted_at, time_taken_sec,
-               dim_a, dim_b, dim_c, dim_d, dim_e, dim_f,
-               overall_score, weighted_score, mbti_type, mbti_name,
-               fit_rating, recommendation, narrative, red_flags_json,
-               answers_json, ip_address, cv_filename
-        FROM submissions WHERE id=?
-    """, (sid,)).fetchone()
-    conn.close()
-    if not row:
-        return jsonify({"error": "Not found"}), 404
-    s = dict(row)
-    s["red_flags"]  = json.loads(s.get("red_flags_json") or "[]")
-    s["answers"]    = json.loads(s.get("answers_json") or "[]")
-    s["has_cv"]     = bool(s.get("cv_filename"))
-    del s["answers_json"], s["red_flags_json"]
-    return jsonify(s)
+    try:
+        conn = get_db()
+        row = conn.execute(f"""
+            SELECT {_CANDIDATE_COLS}, answers_json
+            FROM submissions WHERE id=?
+        """, (sid,)).fetchone()
+        conn.close()
+        if not row:
+            return jsonify({"error": "Not found"}), 404
+        s = _safe_row(row)
+        s["red_flags"] = json.loads(s.pop("red_flags_json", None) or "[]")
+        s["answers"]   = json.loads(s.pop("answers_json",   None) or "[]")
+        s["has_cv"]    = bool(s.get("cv_filename"))
+        return jsonify(s)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/admin/candidate/<int:sid>", methods=["DELETE"])
 @admin_required
@@ -678,11 +729,14 @@ def delete_candidate(sid):
     conn.close()
     return jsonify({"success": True})
 
+
 @app.route("/api/admin/cv/<int:sid>")
 @admin_required
 def admin_cv(sid):
     conn = get_db()
-    row = conn.execute("SELECT cv_data, cv_filename, cv_mimetype FROM submissions WHERE id=?", (sid,)).fetchone()
+    row = conn.execute(
+        "SELECT cv_data, cv_filename, cv_mimetype FROM submissions WHERE id=?", (sid,)
+    ).fetchone()
     conn.close()
     if not row or not row["cv_data"]:
         return jsonify({"error": "No CV uploaded for this candidate"}), 404
@@ -691,21 +745,24 @@ def admin_cv(sid):
     response.headers["Content-Disposition"] = f'inline; filename="{row["cv_filename"] or "cv"}"'
     return response
 
+
 @app.route("/api/admin/export/csv")
 @admin_required
 def export_csv():
     conn = get_db()
-    rows = [dict(r) for r in conn.execute("SELECT * FROM submissions ORDER BY weighted_score DESC").fetchall()]
+    rows = conn.execute(
+        f"SELECT {_CANDIDATE_COLS} FROM submissions ORDER BY weighted_score DESC"
+    ).fetchall()
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    headers = ["Rank","Name","Email","Submitted At","Time Taken (min)","Recommendation",
-               "Weighted Score","Overall Score","Analytical Depth","Aesthetic Sensibility",
-               "Execution Drive","Ambiguity Tolerance","Stakeholder Orientation","Growth Mindset",
-               "MBTI Type","MBTI Name","Fit Rating","Red Flags","CV Uploaded","IP Address"]
-    writer.writerow(headers)
-    for rank, s in enumerate(rows, 1):
+    writer.writerow(["Rank","Name","Email","Submitted At","Time Taken (min)","Recommendation",
+                     "Weighted Score","Overall Score","Analytical Depth","Aesthetic Sensibility",
+                     "Execution Drive","Ambiguity Tolerance","Stakeholder Orientation","Growth Mindset",
+                     "MBTI Type","MBTI Name","Fit Rating","Red Flags","CV Uploaded","IP Address"])
+    for rank, r in enumerate(rows, 1):
+        s = _safe_row(r)
         flags = json.loads(s.get("red_flags_json") or "[]")
         writer.writerow([
             rank, s["name"], s["email"], s["submitted_at"],
@@ -721,29 +778,42 @@ def export_csv():
     response.headers["Content-Type"] = "text/csv"
     return response
 
+
 @app.route("/api/admin/export/json")
 @admin_required
 def export_json():
     conn = get_db()
-    rows = [dict(r) for r in conn.execute("SELECT * FROM submissions ORDER BY weighted_score DESC").fetchall()]
+    rows = conn.execute(
+        "SELECT id, email, name, submitted_at, time_taken_sec, "
+        "dim_a, dim_b, dim_c, dim_d, dim_e, dim_f, overall_score, weighted_score, "
+        "mbti_type, mbti_name, fit_rating, recommendation, narrative, "
+        "red_flags_json, answers_json, ip_address, cv_filename "
+        "FROM submissions ORDER BY weighted_score DESC"
+    ).fetchall()
     conn.close()
-    for s in rows:
-        s["red_flags"] = json.loads(s.get("red_flags_json") or "[]")
-        s["answers"]   = json.loads(s.get("answers_json")   or "[]")
-        del s["red_flags_json"], s["answers_json"]
-    response = make_response(json.dumps(rows, indent=2, default=str))
+    out = []
+    for r in rows:
+        s = _safe_row(r)
+        s["red_flags"] = json.loads(s.pop("red_flags_json", None) or "[]")
+        s["answers"]   = json.loads(s.pop("answers_json",   None) or "[]")
+        out.append(s)
+    response = make_response(json.dumps(out, indent=2, default=str))
     response.headers["Content-Disposition"] = f'attachment; filename="fig_living_pat_{datetime.now().strftime("%Y%m%d_%H%M")}.json"'
     response.headers["Content-Type"] = "application/json"
     return response
+
 
 @app.route("/api/admin/export/narratives")
 @admin_required
 def export_narratives():
     conn = get_db()
-    rows = [dict(r) for r in conn.execute("SELECT * FROM submissions ORDER BY weighted_score DESC").fetchall()]
+    rows = conn.execute(
+        f"SELECT {_CANDIDATE_COLS} FROM submissions ORDER BY weighted_score DESC"
+    ).fetchall()
     conn.close()
     lines = ["FIG LIVING — PERSONALITY ASSESSMENT TOOL", "Candidate Narrative Report", "=" * 60, ""]
-    for rank, s in enumerate(rows, 1):
+    for rank, r in enumerate(rows, 1):
+        s = _safe_row(r)
         lines.append(f"#{rank} | {s['name']} | {s['email']}")
         lines.append(f"Weighted Score: {s['weighted_score']}% | Recommendation: {s['recommendation']}")
         lines.append("-" * 60)
